@@ -2,6 +2,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Initialize Database Schema
     initDatabase();
 
+    // Auto-checkout past bookings
+    autoCheckOutPastBookings();
+
     // 2. Render Dynamic Components across Pages
     renderDynamicContent();
 
@@ -41,7 +44,8 @@ const DEFAULT_ROOMS = [
         description: "Awake to panoramic vistas of the Kanchenjunga peaks right from your bedside. Designed with premium alpine wood paneling, warm colors, and heated floors, this room provides the ultimate cozy retreat after a day of sightseeing.",
         price: 4500,
         image: "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=1000&q=80",
-        amenities: ["Private Balcony", "Premium Tea Maker", "43\" Smart LED TV", "Underbed Heating"]
+        amenities: ["Private Balcony", "Premium Tea Maker", "43\" Smart LED TV", "Underbed Heating"],
+        inventory: 5
     },
     {
         id: "premium",
@@ -50,7 +54,8 @@ const DEFAULT_ROOMS = [
         description: "Indulge in spacious alpine comfort. These rooms feature a separate glass-walled seating area, a large wooden balcony suspended over the misty valleys, premium coffee pod setup, and customized luxury bath cosmetics.",
         price: 6500,
         image: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1000&q=80",
-        amenities: ["Large Wooden Deck", "Espresso Machine", "Minibar & Safe Box", "Deep Soak Bathtub"]
+        amenities: ["Large Wooden Deck", "Espresso Machine", "Minibar & Safe Box", "Deep Soak Bathtub"],
+        inventory: 3
     },
     {
         id: "presidential",
@@ -59,7 +64,8 @@ const DEFAULT_ROOMS = [
         description: "Our flagship penthouse residence. Offers an extensive master bed, a private living lounge centered around a hand-carved stone fireplace, a vast panorama terrace with a heated cedar hot-tub, and personalized 24/7 butler service on demand.",
         price: 10500,
         image: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=1000&q=80",
-        amenities: ["Outdoor Jacuzzi Tub", "Wood Fireplace", "Personal Butler", "55\" UHD Smart Screen"]
+        amenities: ["Outdoor Jacuzzi Tub", "Wood Fireplace", "Personal Butler", "55\" UHD Smart Screen"],
+        inventory: 1
     }
 ];
 
@@ -147,6 +153,24 @@ const DEFAULT_SETTINGS = {
 function initDatabase() {
     if (!localStorage.getItem('hotel_rooms')) {
         localStorage.setItem('hotel_rooms', JSON.stringify(DEFAULT_ROOMS));
+    } else {
+        // Enforce inventory field in existing data schema
+        try {
+            let rooms = JSON.parse(localStorage.getItem('hotel_rooms')) || [];
+            let modified = false;
+            rooms.forEach(r => {
+                if (r.inventory === undefined) {
+                    const defaultRoom = DEFAULT_ROOMS.find(d => d.id === r.id);
+                    r.inventory = defaultRoom ? defaultRoom.inventory : 3;
+                    modified = true;
+                }
+            });
+            if (modified) {
+                localStorage.setItem('hotel_rooms', JSON.stringify(rooms));
+            }
+        } catch (e) {
+            console.error("Schema patch failed", e);
+        }
     }
     if (!localStorage.getItem('hotel_gallery')) {
         localStorage.setItem('hotel_gallery', JSON.stringify(DEFAULT_GALLERY));
@@ -162,6 +186,63 @@ function initDatabase() {
     }
     if (!localStorage.getItem('hotel_enquiries')) {
         localStorage.setItem('hotel_enquiries', JSON.stringify([]));
+    }
+}
+
+/* ==========================================
+   DYNAMIC INVENTORY & RESERVATION HELPERS
+   ========================================== */
+function isDateRangeOverlapping(start1, end1, start2, end2) {
+    const s1 = new Date(start1);
+    const e1 = new Date(end1);
+    const s2 = new Date(start2);
+    const e2 = new Date(end2);
+    return (s1 < e2) && (s2 < e1);
+}
+
+function getRoomAvailability(roomId, checkin, checkout) {
+    const rooms = JSON.parse(localStorage.getItem('hotel_rooms')) || DEFAULT_ROOMS;
+    const room = rooms.find(r => r.id === roomId);
+    if (!room) return 0;
+    const totalInventory = parseInt(room.inventory) || 5;
+
+    if (!checkin || !checkout) return totalInventory;
+
+    const enquiries = JSON.parse(localStorage.getItem('hotel_enquiries')) || [];
+    
+    // Filter active bookings matching room type that overlap dates
+    const activeOverlaps = enquiries.filter(b => {
+        // Only count Confirmed bookings against available inventory
+        if (b.status !== 'Confirmed') return false;
+        
+        // Match room category either by exact ID or original name
+        const roomTypeMatch = (b.roomType === room.name || b.roomType === room.id || (b.room_type && b.room_type === room.id));
+        if (!roomTypeMatch) return false;
+
+        return isDateRangeOverlapping(b.checkin, b.checkout, checkin, checkout);
+    });
+
+    return Math.max(0, totalInventory - activeOverlaps.length);
+}
+
+function autoCheckOutPastBookings() {
+    try {
+        const enquiries = JSON.parse(localStorage.getItem('hotel_enquiries')) || [];
+        const today = new Date().toISOString().split('T')[0];
+        let modified = false;
+
+        enquiries.forEach(b => {
+            if ((b.status === 'Confirmed' || b.status === 'Pending') && b.checkout < today) {
+                b.status = 'Completed';
+                modified = true;
+            }
+        });
+
+        if (modified) {
+            localStorage.setItem('hotel_enquiries', JSON.stringify(enquiries));
+        }
+    } catch (e) {
+        console.error("Auto checkout failed", e);
     }
 }
 
@@ -729,7 +810,31 @@ function initTariffCalculator() {
 
         const grandTotal = totalBase + totalExtraGuests;
 
-        displayTotal.innerHTML = `₹${grandTotal.toLocaleString('en-IN')} <label>Estimated Total</label>`;
+        // Availability Calculation
+        const avail = getRoomAvailability(roomType, checkinVal, checkoutVal);
+        let availHTML = '';
+        const calcForm = document.getElementById('tariff-calc-form');
+        const proceedBtn = calcForm ? calcForm.querySelector('button') : null;
+
+        if (avail <= 0) {
+            availHTML = `<span style="display:block; color:var(--error); font-size:0.85rem; font-weight:600; margin-top:8px;">❌ Sold Out for these dates</span>`;
+            if (proceedBtn) {
+                proceedBtn.disabled = true;
+                proceedBtn.style.opacity = '0.5';
+                proceedBtn.style.cursor = 'not-allowed';
+                proceedBtn.textContent = 'Sold Out';
+            }
+        } else {
+            availHTML = `<span style="display:block; color:var(--success); font-size:0.85rem; font-weight:600; margin-top:8px;">✅ Available (${avail} left)</span>`;
+            if (proceedBtn) {
+                proceedBtn.disabled = false;
+                proceedBtn.style.opacity = '1';
+                proceedBtn.style.cursor = 'pointer';
+                proceedBtn.textContent = 'Proceed to Enquiry';
+            }
+        }
+
+        displayTotal.innerHTML = `₹${grandTotal.toLocaleString('en-IN')} <label>Estimated Total</label>${availHTML}`;
         breakdownNights.textContent = `${nights} Night${nights > 1 ? 's' : ''} × ₹${baseNightPrice.toLocaleString('en-IN')}`;
         if (breakdownGuests) breakdownGuests.textContent = guests > 2 ? `₹${totalExtraGuests.toLocaleString('en-IN')}` : '₹0';
         
@@ -772,12 +877,82 @@ function initForms() {
     // 1. Quick Booking search-bar handler (Redirection to contact.html)
     const quickBookingForm = document.getElementById('quick-booking-form');
     if (quickBookingForm) {
+        const roomTypeSelect = document.getElementById('booking-room-type');
+        let statusLabel = document.getElementById('quick-availability-status');
+        if (roomTypeSelect && !statusLabel) {
+            statusLabel = document.createElement('div');
+            statusLabel.id = 'quick-availability-status';
+            statusLabel.style.fontSize = '0.75rem';
+            statusLabel.style.fontWeight = '600';
+            statusLabel.style.marginTop = '4px';
+            statusLabel.style.position = 'absolute';
+            statusLabel.style.bottom = '-20px';
+            statusLabel.style.left = '0';
+            roomTypeSelect.parentNode.style.position = 'relative';
+            roomTypeSelect.parentNode.appendChild(statusLabel);
+        }
+
+        function checkQuickAvailability() {
+            const roomVal = document.getElementById('booking-room-type').value;
+            const checkinVal = document.getElementById('booking-check-in').value;
+            const checkoutVal = document.getElementById('booking-check-out').value;
+            const submitBtn = quickBookingForm.querySelector('button[type="submit"]');
+
+            if (!roomVal || !checkinVal || !checkoutVal) {
+                if (statusLabel) statusLabel.innerHTML = '';
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.style.opacity = '1';
+                    submitBtn.style.cursor = 'pointer';
+                    submitBtn.textContent = 'Check Tariff';
+                }
+                return;
+            }
+
+            const avail = getRoomAvailability(roomVal, checkinVal, checkoutVal);
+            if (statusLabel) {
+                if (avail <= 0) {
+                    statusLabel.innerHTML = `<span style="color:var(--error);">❌ Sold Out</span>`;
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.style.opacity = '0.5';
+                        submitBtn.style.cursor = 'not-allowed';
+                        submitBtn.textContent = 'Sold Out';
+                    }
+                } else {
+                    statusLabel.innerHTML = `<span style="color:var(--success);">✅ ${avail} room${avail > 1 ? 's' : ''} left</span>`;
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.style.opacity = '1';
+                        submitBtn.style.cursor = 'pointer';
+                        submitBtn.textContent = 'Check Tariff';
+                    }
+                }
+            }
+        }
+
+        const triggers = [
+            document.getElementById('booking-room-type'),
+            document.getElementById('booking-check-in'),
+            document.getElementById('booking-check-out')
+        ];
+        triggers.forEach(el => {
+            if (el) el.addEventListener('change', checkQuickAvailability);
+        });
+
         quickBookingForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const checkin = document.getElementById('booking-check-in').value;
             const checkout = document.getElementById('booking-check-out').value;
             const guests = document.getElementById('booking-guests').value;
             const roomType = document.getElementById('booking-room-type').value;
+
+            // Check availability
+            const avail = getRoomAvailability(roomType, checkin, checkout);
+            if (avail <= 0) {
+                alert("We are sorry! This room category is fully booked/sold out for the selected dates. Please try another room category or different dates.");
+                return;
+            }
 
             const urlParams = new URLSearchParams({ checkin, checkout, guests, roomType });
             window.location.href = `contact.html?${urlParams.toString()}`;
@@ -801,6 +976,68 @@ function initForms() {
         }
         if (guests) document.getElementById('enquiry-guests').value = guests;
         if (roomType) document.getElementById('enquiry-room-type').value = roomType;
+    }
+
+    // Live availability warning indicator on contact page form
+    if (contactForm) {
+        const roomTypeSelect = document.getElementById('enquiry-room-type');
+        let statusLabel = document.getElementById('enquiry-availability-status');
+        if (roomTypeSelect && !statusLabel) {
+            statusLabel = document.createElement('div');
+            statusLabel.id = 'enquiry-availability-status';
+            statusLabel.style.fontSize = '0.8rem';
+            statusLabel.style.fontWeight = '600';
+            statusLabel.style.marginTop = '4px';
+            roomTypeSelect.parentNode.appendChild(statusLabel);
+        }
+
+        function checkEnquiryAvailability() {
+            const roomVal = document.getElementById('enquiry-room-type').value;
+            const checkinVal = document.getElementById('enquiry-check-in').value;
+            const checkoutVal = document.getElementById('enquiry-check-out').value;
+            const submitBtn = contactForm.querySelector('button[type="submit"]');
+
+            if (!roomVal || !checkinVal || !checkoutVal) {
+                if (statusLabel) statusLabel.innerHTML = '';
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.style.opacity = '1';
+                    submitBtn.style.cursor = 'pointer';
+                }
+                return;
+            }
+
+            const avail = getRoomAvailability(roomVal, checkinVal, checkoutVal);
+            if (statusLabel) {
+                if (avail <= 0) {
+                    statusLabel.innerHTML = `<span style="color:var(--error);">❌ Fully booked / Sold Out for these dates</span>`;
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.style.opacity = '0.5';
+                        submitBtn.style.cursor = 'not-allowed';
+                    }
+                } else {
+                    statusLabel.innerHTML = `<span style="color:var(--success);">✅ Rooms Available (${avail} left)</span>`;
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.style.opacity = '1';
+                        submitBtn.style.cursor = 'pointer';
+                    }
+                }
+            }
+        }
+
+        const triggerEls = [
+            document.getElementById('enquiry-room-type'),
+            document.getElementById('enquiry-check-in'),
+            document.getElementById('enquiry-check-out')
+        ];
+        triggerEls.forEach(el => {
+            if (el) el.addEventListener('change', checkEnquiryAvailability);
+        });
+
+        // Trigger check on load after a short delay
+        setTimeout(checkEnquiryAvailability, 150);
     }
 
     // 2. Form Enquiry Submission (intercept and save locally, then submit)
@@ -854,9 +1091,11 @@ function initForms() {
                 checkout,
                 guests,
                 roomType: roomName,
+                room_type: roomType, // Save room ID directly as well
                 message,
                 cost: estimatedCost,
                 status: 'Pending',
+                source: 'Online',
                 date: new Date().toLocaleDateString('en-IN') + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             };
             enquiries.unshift(newEnquiry); // Add to beginning

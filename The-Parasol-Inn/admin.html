@@ -566,6 +566,10 @@
             background-color: rgba(167, 58, 58, 0.15);
             color: #ff6666;
         }
+        .badge-checked-out, .badge-completed {
+            background-color: rgba(163, 176, 167, 0.15);
+            color: #a3b0a7;
+        }
 
         /* Dynamic CRUD items list styling */
         .crud-grid {
@@ -914,13 +918,14 @@
                                         <th>Room Category</th>
                                         <th>Dates</th>
                                         <th>Estimated Cost</th>
+                                        <th>Source</th>
                                         <th>Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <!-- Rendered dynamically -->
                                 </tbody>
-                            </table>
+                             </table>
                         </div>
                     </div>
 
@@ -954,14 +959,17 @@
             <div class="tab-panel" id="panel-enquiries">
                 <div class="page-header">
                     <div>
-                        <h1>Guest Enquiries</h1>
-                        <p>Manage and log reservation details submitted by customers</p>
+                        <h1>Bookings & Enquiries</h1>
+                        <p>Manage online requests and log offline walk-in bookings</p>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-primary" id="btn-add-offline-booking">+ Log Walk-In Booking</button>
                     </div>
                 </div>
 
                 <div class="card">
                     <div class="card-header">
-                        <h3>Booking Request Inbox</h3>
+                        <h3>Booking & Enquiry Logs</h3>
                         <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-all-enquiries">Clear All Logs</button>
                     </div>
                     <div class="table-responsive">
@@ -969,10 +977,11 @@
                             <thead>
                                 <tr>
                                     <th>Submission Info</th>
-                                    <th>Guest details</th>
+                                    <th>Guest Details</th>
                                     <th>Booking Category</th>
                                     <th>Nights & Dates</th>
                                     <th>Est. Tariff</th>
+                                    <th>Source</th>
                                     <th>Notes</th>
                                     <th>Status Action</th>
                                 </tr>
@@ -1179,14 +1188,26 @@
                     <label for="room-form-tagline">Tagline / Location Tag</label>
                     <input type="text" id="room-form-tagline" class="form-control" placeholder="e.g. Scenic Retreat" required>
                 </div>
-                <div class="form-group">
-                    <label for="room-form-price">Nightly Tariff (INR)</label>
-                    <input type="number" id="room-form-price" class="form-control" placeholder="e.g. 5000" min="100" required>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label for="room-form-price">Nightly Tariff (INR)</label>
+                        <input type="number" id="room-form-price" class="form-control" placeholder="e.g. 5000" min="100" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="room-form-inventory">Total Rooms (Inventory)</label>
+                        <input type="number" id="room-form-inventory" class="form-control" placeholder="e.g. 5" min="1" required>
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label for="room-form-image">Room Image URL</label>
-                    <input type="url" id="room-form-image" class="form-control" placeholder="https://images.unsplash.com/..." required>
-                    <span style="font-size: 0.75rem; color: var(--admin-text-mute); margin-top: 4px; display:block;">Provide a direct web link (e.g. from Unsplash or local folder)</span>
+                    <label for="room-form-image">Room Image</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="room-form-image" class="form-control" placeholder="https://images.unsplash.com/... or data:image..." style="flex: 1;" required>
+                        <div style="position: relative; overflow: hidden; display: inline-block;">
+                            <button type="button" class="btn btn-secondary" style="height: 38px; white-space: nowrap; font-size: 0.85rem; padding: 0 12px;">Local Image</button>
+                            <input type="file" id="room-form-image-file" accept="image/*" style="position: absolute; font-size: 100px; right: 0; top: 0; opacity: 0; cursor: pointer;">
+                        </div>
+                    </div>
+                    <span style="font-size: 0.75rem; color: var(--admin-text-mute); margin-top: 4px; display:block;">Enter an image web URL or select a local file to upload (it will be optimized automatically).</span>
                 </div>
                 <div class="form-group">
                     <label for="room-form-desc">Room Description</label>
@@ -1221,7 +1242,7 @@
 
     <!-- Gallery Modal -->
     <div class="modal-overlay" id="modal-gallery">
-        <div class="modal-card" style="max-width: 450px;">
+        <div class="modal-card" style="max-width: 480px;">
             <div class="modal-header">
                 <h3 id="gallery-modal-title">Add Photo Asset</h3>
                 <button type="button" class="modal-close" onclick="closeModal('modal-gallery')">&times;</button>
@@ -1242,8 +1263,15 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="gallery-form-image">Image URL</label>
-                    <input type="url" id="gallery-form-image" class="form-control" placeholder="https://images.unsplash.com/..." required>
+                    <label for="gallery-form-image">Image</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="gallery-form-image" class="form-control" placeholder="https://images.unsplash.com/... or data:image..." style="flex: 1;" required>
+                        <div style="position: relative; overflow: hidden; display: inline-block;">
+                            <button type="button" class="btn btn-secondary" style="height: 38px; white-space: nowrap; font-size: 0.85rem; padding: 0 12px;">Local Image</button>
+                            <input type="file" id="gallery-form-image-file" accept="image/*" style="position: absolute; font-size: 100px; right: 0; top: 0; opacity: 0; cursor: pointer;">
+                        </div>
+                    </div>
+                    <span style="font-size: 0.75rem; color: var(--admin-text-mute); margin-top: 4px; display:block;">Enter an image web URL or select a local file to upload (it will be optimized automatically).</span>
                 </div>
                 <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 30px;">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('modal-gallery')">Cancel</button>
@@ -1322,6 +1350,86 @@
                 <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 30px;">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('modal-testimonial')">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save Review</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Offline Booking Modal -->
+    <div class="modal-overlay" id="modal-booking">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="booking-modal-title">Log Walk-In / Offline Booking</h3>
+                <button type="button" class="modal-close" onclick="closeModal('modal-booking')">&times;</button>
+            </div>
+            <form id="offline-booking-form">
+                <div class="form-group">
+                    <label for="booking-form-name">Guest Name</label>
+                    <input type="text" id="booking-form-name" class="form-control" placeholder="e.g. Amit Sen" required>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label for="booking-form-phone">Phone Number</label>
+                        <input type="tel" id="booking-form-phone" class="form-control" placeholder="e.g. +91 98765 43210" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="booking-form-email">Email Address</label>
+                        <input type="email" id="booking-form-email" class="form-control" placeholder="e.g. amit@gmail.com" required>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label for="booking-form-checkin">Check-In Date</label>
+                        <input type="date" id="booking-form-checkin" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="booking-form-checkout">Check-Out Date</label>
+                        <input type="date" id="booking-form-checkout" class="form-control" required>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label for="booking-form-roomtype">Room Category</label>
+                        <select id="booking-form-roomtype" class="form-control" required>
+                            <!-- Javascript populated -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="booking-form-guests">Number of Guests</label>
+                        <select id="booking-form-guests" class="form-control" required>
+                            <option value="1">1 Guest</option>
+                            <option value="2" selected>2 Guests</option>
+                            <option value="3">3 Guests</option>
+                            <option value="4">4 Guests</option>
+                            <option value="5">5+ Guests</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label for="booking-form-cost">Booking Tariff (INR)</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="number" id="booking-form-cost" class="form-control" placeholder="Tariff Amount" required style="flex: 1;">
+                            <button type="button" class="btn btn-secondary" id="btn-calc-offline-cost" style="font-size: 0.8rem; padding: 0 10px;">Auto Calc</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="booking-form-status">Status</label>
+                        <select id="booking-form-status" class="form-control" required>
+                            <option value="Confirmed" selected>Confirmed</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Checked-Out">Checked-Out</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="booking-form-message">Special Notes / Messages</label>
+                    <textarea id="booking-form-message" class="form-control" style="height: 60px; resize: vertical;" placeholder="Add airport pickup, extra bed, etc. if applicable..."></textarea>
+                </div>
+                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 30px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-booking')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Offline Booking</button>
                 </div>
             </form>
         </div>
@@ -1499,19 +1607,21 @@
             tbody.innerHTML = '';
             
             if (enquiries.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--admin-text-mute);">No enquiries logged yet.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--admin-text-mute);">No enquiries logged yet.</td></tr>`;
                 return;
             }
 
             // Show top 5 recent
             enquiries.slice(0, 5).forEach(enq => {
                 const tr = document.createElement('tr');
+                const sourceClass = (enq.source || 'Online') === 'Online' ? 'success' : 'warning';
                 tr.innerHTML = `
                     <td>${enq.date}</td>
                     <td><strong>${enq.name}</strong><br><span style="font-size:0.75rem; color:var(--admin-text-mute);">${enq.phone}</span></td>
                     <td>${enq.roomType}</td>
                     <td><span style="font-size:0.85rem;">${enq.checkin} to ${enq.checkout}</span></td>
                     <td><strong>₹${enq.cost.toLocaleString('en-IN')}</strong></td>
+                    <td><span class="badge badge-${sourceClass}">${enq.source || 'Online'}</span></td>
                     <td><span class="badge badge-${enq.status.toLowerCase()}">${enq.status}</span></td>
                 `;
                 tbody.appendChild(tr);
@@ -1524,25 +1634,37 @@
             tbody.innerHTML = '';
             
             if (enquiries.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--admin-text-mute);">No booking requests found.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--admin-text-mute);">No booking requests found.</td></tr>`;
                 return;
             }
 
             enquiries.forEach((enq, index) => {
                 const tr = document.createElement('tr');
                 
-                // Set badge status option selection
+                // Set badge status option selection with guest checkout option
+                let actionButtonsHTML = '';
+                if (enq.status === 'Pending') {
+                    actionButtonsHTML = `
+                        <button class="btn btn-secondary btn-sm" onclick="changeEnquiryStatus('${enq.id}', 'Confirmed')" title="Confirm">✔</button>
+                        <button class="btn btn-secondary btn-sm" onclick="changeEnquiryStatus('${enq.id}', 'Cancelled')" title="Cancel">✘</button>
+                    `;
+                } else if (enq.status === 'Confirmed') {
+                    actionButtonsHTML = `
+                        <button class="btn btn-secondary btn-sm" onclick="changeEnquiryStatus('${enq.id}', 'Checked-Out')" title="Check Out Guest" style="font-size:0.7rem; padding:2px 6px; white-space:nowrap;">Check-Out 🚪</button>
+                    `;
+                }
+
                 const statusSelectHTML = `
                     <div style="display:flex; flex-direction:column; gap:4px; min-width:120px;">
-                        <span class="badge badge-${enq.status.toLowerCase()}" style="text-align:center; margin-bottom:4px;">${enq.status}</span>
-                        <div style="display:flex; gap:4px;">
-                            <button class="btn btn-secondary btn-sm" onclick="changeEnquiryStatus('${enq.id}', 'Confirmed')" title="Confirm">✔</button>
-                            <button class="btn btn-secondary btn-sm" onclick="changeEnquiryStatus('${enq.id}', 'Cancelled')" title="Cancel">✘</button>
+                        <span class="badge badge-${enq.status.toLowerCase().replace(/[^a-z]+/g, '-')}" style="text-align:center; margin-bottom:4px;">${enq.status}</span>
+                        <div style="display:flex; gap:4px; align-items:center;">
+                            ${actionButtonsHTML}
                             <button class="btn btn-danger btn-sm" onclick="deleteEnquiry('${enq.id}')" title="Delete" style="margin-left: auto;">🗑</button>
                         </div>
                     </div>
                 `;
 
+                const sourceClass = (enq.source || 'Online') === 'Online' ? 'success' : 'warning';
                 tr.innerHTML = `
                     <td><span style="font-size:0.75rem; color:var(--admin-text-mute);">${enq.date}</span></td>
                     <td>
@@ -1556,6 +1678,7 @@
                         <span style="font-size:0.8rem; color:var(--admin-text-mute);">${enq.guests} Guest(s)</span>
                     </td>
                     <td><strong style="color:var(--admin-primary)">₹${enq.cost.toLocaleString('en-IN')}</strong></td>
+                    <td><span class="badge badge-${sourceClass}">${enq.source || 'Online'}</span></td>
                     <td style="max-width:200px; font-size:0.85rem; color:var(--admin-text-mute);">${enq.message || '—'}</td>
                     <td>${statusSelectHTML}</td>
                 `;
@@ -1611,7 +1734,7 @@
                             </div>
                         </div>
                         <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--admin-border); padding-top:12px;">
-                            <span style="font-size:0.8rem; color:var(--admin-text-mute);">Nightly Tariff</span>
+                            <span style="font-size:0.8rem; color:var(--admin-text-mute);">Rooms (Inventory): <strong>${room.inventory || 3}</strong></span>
                             <span class="crud-card-price">₹${room.price.toLocaleString('en-IN')}</span>
                         </div>
                     </div>
@@ -1630,6 +1753,7 @@
             document.getElementById('room-form-name').value = room.name;
             document.getElementById('room-form-tagline').value = room.tagline;
             document.getElementById('room-form-price').value = room.price;
+            document.getElementById('room-form-inventory').value = room.inventory || 5;
             document.getElementById('room-form-image').value = room.image;
             document.getElementById('room-form-desc').value = room.description;
 
@@ -1800,6 +1924,43 @@
         /* ==========================================
            CRUD DIALOG SUBMISSIONS & FORM SUBMIT
            ========================================== */
+        function compressImageFile(file, callback) {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    const max_size = 1200; // max size limit
+
+                    if (width > height) {
+                        if (width > max_size) {
+                            height = Math.round((height * max_size) / width);
+                            width = max_size;
+                        }
+                    } else {
+                        if (height > max_size) {
+                            width = Math.round((width * max_size) / height);
+                            height = max_size;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Compress to JPEG with 70% quality (0.7) to drastically reduce size (~50-100KB)
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    callback(dataUrl);
+                };
+            };
+        }
+
         function initCrudForms() {
             // Trigger New Add Dialog Modals
             document.getElementById('btn-add-room').addEventListener('click', () => {
@@ -1833,6 +1994,168 @@
                 openModal('modal-testimonial');
             });
 
+            // Local image compression event listeners
+            const roomImageFile = document.getElementById('room-form-image-file');
+            if (roomImageFile) {
+                roomImageFile.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        showToast("Compressing local image...", "info");
+                        compressImageFile(file, (dataUrl) => {
+                            document.getElementById('room-form-image').value = dataUrl;
+                            showToast("Local image uploaded & compressed successfully!", "success");
+                        });
+                    }
+                });
+            }
+
+            const galleryImageFile = document.getElementById('gallery-form-image-file');
+            if (galleryImageFile) {
+                galleryImageFile.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        showToast("Compressing local image...", "info");
+                        compressImageFile(file, (dataUrl) => {
+                            document.getElementById('gallery-form-image').value = dataUrl;
+                            showToast("Local image uploaded & compressed successfully!", "success");
+                        });
+                    }
+                });
+            }
+
+            // Offline booking dialog trigger
+            const addBookingBtn = document.getElementById('btn-add-offline-booking');
+            if (addBookingBtn) {
+                addBookingBtn.addEventListener('click', () => {
+                    const form = document.getElementById('offline-booking-form');
+                    form.reset();
+                    
+                    // Populate room category options dynamically
+                    const roomSelect = document.getElementById('booking-form-roomtype');
+                    const rooms = JSON.parse(localStorage.getItem('hotel_rooms')) || [];
+                    roomSelect.innerHTML = '';
+                    rooms.forEach(r => {
+                        const opt = document.createElement('option');
+                        opt.value = r.id;
+                        opt.textContent = `${r.name} (₹${r.price.toLocaleString('en-IN')}/night)`;
+                        roomSelect.appendChild(opt);
+                    });
+
+                    // Set default dates to today/tomorrow
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    const tomorrow = new Date();
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+                    
+                    document.getElementById('booking-form-checkin').value = todayStr;
+                    document.getElementById('booking-form-checkin').min = todayStr;
+                    document.getElementById('booking-form-checkout').value = tomorrowStr;
+                    document.getElementById('booking-form-checkout').min = tomorrowStr;
+
+                    // Trigger initial cost calculation
+                    calculateOfflineCost();
+
+                    openModal('modal-booking');
+                });
+            }
+
+            function calculateOfflineCost() {
+                const roomSelect = document.getElementById('booking-form-roomtype');
+                const checkinVal = document.getElementById('booking-form-checkin').value;
+                const checkoutVal = document.getElementById('booking-form-checkout').value;
+                const guests = parseInt(document.getElementById('booking-form-guests').value) || 2;
+                const costInput = document.getElementById('booking-form-cost');
+
+                const roomId = roomSelect.value;
+                const rooms = JSON.parse(localStorage.getItem('hotel_rooms')) || [];
+                const chosenRoom = rooms.find(r => r.id === roomId);
+
+                if (!chosenRoom || !checkinVal || !checkoutVal) {
+                    costInput.value = '';
+                    return;
+                }
+
+                const d1 = new Date(checkinVal);
+                const d2 = new Date(checkoutVal);
+                const diff = Math.abs(d2 - d1);
+                const nights = Math.ceil(diff / (1000 * 60 * 60 * 24)) || 1;
+
+                const basePrice = chosenRoom.price;
+                const extraGuestFee = 1000;
+                const extraCount = Math.max(0, guests - 2);
+
+                const estimatedCost = (basePrice * nights) + (extraCount * extraGuestFee * nights);
+                costInput.value = estimatedCost;
+            }
+
+            const calcOfflineCostBtn = document.getElementById('btn-calc-offline-cost');
+            if (calcOfflineCostBtn) {
+                calcOfflineCostBtn.addEventListener('click', calculateOfflineCost);
+            }
+
+            const offlineTriggers = [
+                document.getElementById('booking-form-roomtype'),
+                document.getElementById('booking-form-checkin'),
+                document.getElementById('booking-form-checkout'),
+                document.getElementById('booking-form-guests')
+            ];
+            offlineTriggers.forEach(el => {
+                if (el) el.addEventListener('change', calculateOfflineCost);
+            });
+
+            const offlineCheckin = document.getElementById('booking-form-checkin');
+            const offlineCheckout = document.getElementById('booking-form-checkout');
+            if (offlineCheckin && offlineCheckout) {
+                offlineCheckin.addEventListener('change', () => {
+                    offlineCheckout.min = offlineCheckin.value;
+                });
+            }
+
+            // Offline booking form submission
+            document.getElementById('offline-booking-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                const name = document.getElementById('booking-form-name').value;
+                const phone = document.getElementById('booking-form-phone').value;
+                const email = document.getElementById('booking-form-email').value;
+                const checkin = document.getElementById('booking-form-checkin').value;
+                const checkout = document.getElementById('booking-form-checkout').value;
+                const roomId = document.getElementById('booking-form-roomtype').value;
+                const guests = document.getElementById('booking-form-guests').value;
+                const cost = parseInt(document.getElementById('booking-form-cost').value) || 0;
+                const status = document.getElementById('booking-form-status').value;
+                const message = document.getElementById('booking-form-message').value;
+
+                const rooms = JSON.parse(localStorage.getItem('hotel_rooms')) || [];
+                const chosenRoom = rooms.find(r => r.id === roomId);
+                const roomName = chosenRoom ? chosenRoom.name : roomId;
+
+                const newBooking = {
+                    id: 'enq_' + Date.now(),
+                    name,
+                    phone,
+                    email,
+                    checkin,
+                    checkout,
+                    guests,
+                    roomType: roomName,
+                    room_type: roomId,
+                    message,
+                    cost,
+                    status,
+                    source: 'Walk-In',
+                    date: new Date().toLocaleDateString('en-IN') + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                };
+
+                const enquiries = JSON.parse(localStorage.getItem('hotel_enquiries')) || [];
+                enquiries.unshift(newBooking);
+                localStorage.setItem('hotel_enquiries', JSON.stringify(enquiries));
+
+                closeModal('modal-booking');
+                showToast("Walk-in booking logged successfully!", "success");
+                loadAllDatabaseViews();
+            });
+
             // 1. Room form submission
             document.getElementById('room-form').addEventListener('submit', (e) => {
                 e.preventDefault();
@@ -1840,6 +2163,7 @@
                 const name = document.getElementById('room-form-name').value;
                 const tagline = document.getElementById('room-form-tagline').value;
                 const price = parseInt(document.getElementById('room-form-price').value) || 0;
+                const inventory = parseInt(document.getElementById('room-form-inventory').value) || 3;
                 const image = document.getElementById('room-form-image').value;
                 const description = document.getElementById('room-form-desc').value;
 
@@ -1854,7 +2178,7 @@
                     // Update
                     const idx = rooms.findIndex(r => r.id === id);
                     if (idx !== -1) {
-                        rooms[idx] = { id, name, tagline, price, image, description, amenities };
+                        rooms[idx] = { id, name, tagline, price, inventory, image, description, amenities };
                         showToast(`Room "${name}" updated successfully.`, 'success');
                     }
                 } else {
@@ -1864,7 +2188,7 @@
                         showToast(`A room with a similar name already exists. Please modify.`, 'danger');
                         return;
                     }
-                    rooms.push({ id: newId, name, tagline, price, image, description, amenities });
+                    rooms.push({ id: newId, name, tagline, price, inventory, image, description, amenities });
                     showToast(`Room category "${name}" added.`, 'success');
                 }
 
