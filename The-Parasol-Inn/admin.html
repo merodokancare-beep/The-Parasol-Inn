@@ -1616,6 +1616,9 @@
             let settings = {};
             let enquiries = [];
 
+            const passcode = sessionStorage.getItem('admin_passcode') || '';
+            const headers = passcode ? { 'Authorization': `Bearer ${passcode}` } : {};
+
             try {
                 const resRooms = await fetch('/api/rooms');
                 if (resRooms.ok) rooms = await resRooms.json();
@@ -1629,10 +1632,10 @@
                 const resTest = await fetch('/api/testimonials');
                 if (resTest.ok) testimonials = await resTest.json();
 
-                const resSet = await fetch('/api/settings');
+                const resSet = await fetch('/api/settings', { headers });
                 if (resSet.ok) settings = await resSet.json();
 
-                const resEnq = await fetch('/api/enquiries');
+                const resEnq = await fetch('/api/enquiries', { headers });
                 if (resEnq.ok) enquiries = await resEnq.json();
             } catch(e) {
                 console.warn("API loading failed, using localStorage fallback", e);
@@ -1650,6 +1653,13 @@
             window.adminTestimonials = testimonials;
             window.adminSettings = settings;
             window.adminEnquiries = enquiries;
+
+            // Populate offline booking room types dropdown
+            const roomTypeSelect = document.getElementById('booking-form-roomtype');
+            if (roomTypeSelect) {
+                roomTypeSelect.innerHTML = '<option value="" disabled selected>Select Room</option>' + 
+                    rooms.map(r => `<option value="${r.id}">${r.name} (₹${r.price.toLocaleString('en-IN')})</option>`).join('');
+            }
 
             // Update stats cards
             document.getElementById('stat-rooms').textContent = rooms.length;
