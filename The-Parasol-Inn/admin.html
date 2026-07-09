@@ -2177,6 +2177,16 @@
                 openModal('modal-testimonial');
             });
 
+            const btnAddOfflineBooking = document.getElementById('btn-add-offline-booking');
+            if (btnAddOfflineBooking) {
+                btnAddOfflineBooking.addEventListener('click', () => {
+                    document.getElementById('offline-booking-form').reset();
+                    document.getElementById('booking-form-cost').value = '';
+                    document.getElementById('booking-modal-title').textContent = "Log Walk-In / Offline Booking";
+                    openModal('modal-booking');
+                });
+            }
+
             // Local image compression event listeners
             const roomImageFile = document.getElementById('room-form-image-file');
             if (roomImageFile) {
