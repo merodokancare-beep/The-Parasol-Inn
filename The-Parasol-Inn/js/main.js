@@ -1,21 +1,13 @@
 document.addEventListener('DOMContentLoaded', async () => {
-<<<<<<< HEAD
-    // 1. Initialize Database local defaults for fallback
+    // 1. Initialize Database Schema locally (cached/fallback values)
     initDatabase();
 
     // Load Vercel backend database to cache
     await loadCachedDatabase();
 
-    // Auto-checkout past bookings
-    await autoCheckOutPastBookings();
-=======
-    // 1. Initialize Database Schema locally (cached/fallback values)
-    initDatabase();
-
     // Render immediately from cache for fast initial paint
     renderDynamicContent();
     autoCheckOutPastBookings();
->>>>>>> fc43cfb26f9ba5b30bae09d97e59adbd7d75ef70
 
     // Sync state with Neon PostgreSQL database
     await syncDataFromServer();
