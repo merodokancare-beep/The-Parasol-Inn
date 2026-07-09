@@ -1,8 +1,17 @@
 node_modules/
 .env
 .env.local
+<<<<<<< HEAD
 .vercel/
 .DS_Store
 *.local
 dist/
 build/
+=======
+.env.*.local
+.DS_Store
+.vercel
+dist/
+build/
+package-lock.json
+>>>>>>> fc43cfb26f9ba5b30bae09d97e59adbd7d75ef70

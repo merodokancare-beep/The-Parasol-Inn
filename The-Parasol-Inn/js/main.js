@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
+<<<<<<< HEAD
     // 1. Initialize Database local defaults for fallback
     initDatabase();
 
@@ -7,34 +8,71 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Auto-checkout past bookings
     await autoCheckOutPastBookings();
+=======
+    // 1. Initialize Database Schema locally (cached/fallback values)
+    initDatabase();
 
-    // 2. Render Dynamic Components across Pages
+    // Render immediately from cache for fast initial paint
     renderDynamicContent();
+    autoCheckOutPastBookings();
+>>>>>>> fc43cfb26f9ba5b30bae09d97e59adbd7d75ef70
 
-    // 3. Initialize Theme Toggle
+    // Sync state with Neon PostgreSQL database
+    await syncDataFromServer();
+
+    // Re-render and finalize active components with fresh database values
+    renderDynamicContent();
+    autoCheckOutPastBookings();
+
+    // 2. Initialize Theme Toggle
     initThemeToggle();
 
-    // 4. Initialize Mobile Navigation
+    // 3. Initialize Mobile Navigation
     initMobileNav();
 
-    // 5. Initialize Hero Slider (if exists)
+    // 4. Initialize Hero Slider (if exists)
     initHeroSlider();
 
-    // 6. Initialize Testimonial Slider (if exists)
+    // 5. Initialize Testimonial Slider (if exists)
     initTestimonialSlider();
 
-    // 7. Initialize Gallery Filters and Lightbox (if exists)
+    // 6. Initialize Gallery Filters and Lightbox (if exists)
     initGallery();
 
-    // 8. Initialize Tariff Calculator (if exists)
+    // 7. Initialize Tariff Calculator (if exists)
     initTariffCalculator();
 
-    // 9. Initialize Enquiry Form Handlers
+    // 8. Initialize Enquiry Form Handlers
     initForms();
 
-    // 10. Setup active state for current page nav link
+    // 9. Setup active state for current page nav link
     setupActiveNavLink();
 });
+
+async function syncDataFromServer() {
+    try {
+        const [rooms, gallery, attractions, testimonials, settings] = await Promise.all([
+            fetch('/api/rooms').then(r => r.json()),
+            fetch('/api/gallery').then(r => r.json()),
+            fetch('/api/attractions').then(r => r.json()),
+            fetch('/api/testimonials').then(r => r.json()),
+            fetch('/api/settings').then(r => r.json())
+        ]);
+        
+        localStorage.setItem('hotel_rooms', JSON.stringify(rooms));
+        localStorage.setItem('hotel_gallery', JSON.stringify(gallery));
+        localStorage.setItem('hotel_attractions', JSON.stringify(attractions));
+        localStorage.setItem('hotel_testimonials', JSON.stringify(testimonials));
+        
+        // Merge settings to preserve client-only local settings like passcode
+        const oldSettings = JSON.parse(localStorage.getItem('hotel_settings')) || {};
+        const newSettings = { ...oldSettings, ...settings };
+        localStorage.setItem('hotel_settings', JSON.stringify(newSettings));
+    } catch (e) {
+        console.error("Error syncing database data from Vercel:", e);
+    }
+}
+
 
 /* ==========================================
    CLIENT-SIDE MOCK DATABASE SCHEMA & SEED
@@ -1139,6 +1177,17 @@ function initForms() {
 
             enquiries.unshift(newEnquiry); // Add to beginning
             localStorage.setItem('hotel_enquiries', JSON.stringify(enquiries));
+
+            // Sync new booking request to Vercel/Neon DB in the background
+            fetch('/api/enquiries', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(newEnquiry)
+            }).catch(err => {
+                console.error("Background API enquiry sync failed:", err);
+            });
 
             // Generate receipt HTML
             const receiptHtml = `
