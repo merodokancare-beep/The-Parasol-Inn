@@ -1440,15 +1440,44 @@
          ========================================== -->
     <script>
         // Check local storage session login
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             checkLoginState();
             
             // Hook up forms and controls
             initNavigation();
             initLoginHandler();
             initCrudForms();
+
+            // If logged in, sync fresh data from Neon DB first
+            if (sessionStorage.getItem('admin_logged_in') === 'true') {
+                await syncAllAdminData();
+            }
             loadAllDatabaseViews();
         });
+
+        async function syncAllAdminData() {
+            const passcode = sessionStorage.getItem('admin_passcode') || '';
+            const headers = { 'Authorization': `Bearer ${passcode}` };
+            try {
+                const [rooms, gallery, attractions, testimonials, settings, enquiries] = await Promise.all([
+                    fetch('/api/rooms').then(r => r.json()),
+                    fetch('/api/gallery').then(r => r.json()),
+                    fetch('/api/attractions').then(r => r.json()),
+                    fetch('/api/testimonials').then(r => r.json()),
+                    fetch('/api/settings', { headers }).then(r => r.json()),
+                    fetch('/api/enquiries', { headers }).then(r => r.json())
+                ]);
+                
+                localStorage.setItem('hotel_rooms', JSON.stringify(rooms));
+                localStorage.setItem('hotel_gallery', JSON.stringify(gallery));
+                localStorage.setItem('hotel_attractions', JSON.stringify(attractions));
+                localStorage.setItem('hotel_testimonials', JSON.stringify(testimonials));
+                localStorage.setItem('hotel_settings', JSON.stringify(settings));
+                localStorage.setItem('hotel_enquiries', JSON.stringify(enquiries));
+            } catch (err) {
+                console.error("Failed to sync admin data from server:", err);
+            }
+        }
 
         function checkLoginState() {
             const loggedIn = sessionStorage.getItem('admin_logged_in') === 'true';
@@ -1462,18 +1491,31 @@
 
         function initLoginHandler() {
             const loginForm = document.getElementById('login-form');
-            loginForm.addEventListener('submit', (e) => {
+            loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const passcode = document.getElementById('login-passcode').value;
-                const settings = JSON.parse(localStorage.getItem('hotel_settings')) || { passcode: 'admin123' };
 
-                if (passcode === settings.passcode) {
-                    sessionStorage.setItem('admin_logged_in', 'true');
-                    showToast('Welcome back, Admin!', 'success');
-                    checkLoginState();
-                } else {
-                    showToast('Invalid passcode. Please try again.', 'danger');
-                    document.getElementById('login-passcode').value = '';
+                try {
+                    const res = await fetch('/api/auth', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ passcode })
+                    });
+
+                    if (res.ok) {
+                        sessionStorage.setItem('admin_logged_in', 'true');
+                        sessionStorage.setItem('admin_passcode', passcode);
+                        showToast('Welcome back, Admin!', 'success');
+                        checkLoginState();
+                        await syncAllAdminData();
+                        loadAllDatabaseViews();
+                    } else {
+                        showToast('Invalid passcode. Please try again.', 'danger');
+                        document.getElementById('login-passcode').value = '';
+                    }
+                } catch (err) {
+                    showToast('Connection to authentication server failed.', 'danger');
+                    console.error(err);
                 }
             });
 
@@ -1481,6 +1523,7 @@
             const logoutBtn = document.getElementById('logout-btn');
             logoutBtn.addEventListener('click', () => {
                 sessionStorage.removeItem('admin_logged_in');
+                sessionStorage.removeItem('admin_passcode');
                 showToast('Logged out successfully.', 'success');
                 checkLoginState();
             });
@@ -1686,24 +1729,55 @@
             });
         }
 
-        window.changeEnquiryStatus = function(id, newStatus) {
-            const enquiries = JSON.parse(localStorage.getItem('hotel_enquiries')) || [];
-            const idx = enquiries.findIndex(e => e.id === id);
-            if (idx !== -1) {
-                enquiries[idx].status = newStatus;
-                localStorage.setItem('hotel_enquiries', JSON.stringify(enquiries));
-                showToast(`Enquiry status changed to ${newStatus}.`, 'success');
-                loadAllDatabaseViews();
+        window.changeEnquiryStatus = async function(id, newStatus) {
+            const passcode = sessionStorage.getItem('admin_passcode') || '';
+            try {
+                const res = await fetch('/api/enquiries', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${passcode}`
+                    },
+                    body: JSON.stringify({ id, status: newStatus })
+                });
+
+                if (res.ok) {
+                    showToast(`Enquiry status changed to ${newStatus}.`, 'success');
+                    await syncAllAdminData();
+                    loadAllDatabaseViews();
+                } else {
+                    const errData = await res.json();
+                    showToast(`Error: ${errData.error || 'Failed to update status.'}`, 'danger');
+                }
+            } catch (err) {
+                showToast('Connection to database failed.', 'danger');
+                console.error(err);
             }
         };
 
-        window.deleteEnquiry = function(id) {
+        window.deleteEnquiry = async function(id) {
             if (confirm("Are you sure you want to delete this enquiry request record? This cannot be undone.")) {
-                let enquiries = JSON.parse(localStorage.getItem('hotel_enquiries')) || [];
-                enquiries = enquiries.filter(e => e.id !== id);
-                localStorage.setItem('hotel_enquiries', JSON.stringify(enquiries));
-                showToast(`Enquiry record deleted.`, 'success');
-                loadAllDatabaseViews();
+                const passcode = sessionStorage.getItem('admin_passcode') || '';
+                try {
+                    const res = await fetch(`/api/enquiries?id=${id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${passcode}`
+                        }
+                    });
+
+                    if (res.ok) {
+                        showToast(`Enquiry record deleted.`, 'success');
+                        await syncAllAdminData();
+                        loadAllDatabaseViews();
+                    } else {
+                        const errData = await res.json();
+                        showToast(`Error: ${errData.error || 'Failed to delete record.'}`, 'danger');
+                    }
+                } catch (err) {
+                    showToast('Connection to database failed.', 'danger');
+                    console.error(err);
+                }
             }
         };
 
@@ -1766,13 +1840,29 @@
             openModal('modal-room');
         };
 
-        window.deleteRoom = function(id) {
+        window.deleteRoom = async function(id) {
             if (confirm("Are you sure you want to delete this room tier? Any estimations using it will break.")) {
-                let rooms = JSON.parse(localStorage.getItem('hotel_rooms')) || [];
-                rooms = rooms.filter(r => r.id !== id);
-                localStorage.setItem('hotel_rooms', JSON.stringify(rooms));
-                showToast(`Room category deleted.`, 'success');
-                loadAllDatabaseViews();
+                const passcode = sessionStorage.getItem('admin_passcode') || '';
+                try {
+                    const res = await fetch(`/api/rooms?id=${id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${passcode}`
+                        }
+                    });
+
+                    if (res.ok) {
+                        showToast(`Room category deleted.`, 'success');
+                        await syncAllAdminData();
+                        loadAllDatabaseViews();
+                    } else {
+                        const errData = await res.json();
+                        showToast(`Error: ${errData.error || 'Failed to delete room.'}`, 'danger');
+                    }
+                } catch (err) {
+                    showToast('Connection to database failed.', 'danger');
+                    console.error(err);
+                }
             }
         };
 
@@ -1800,13 +1890,29 @@
             });
         }
 
-        window.deleteGalleryItem = function(id) {
+        window.deleteGalleryItem = async function(id) {
             if (confirm("Are you sure you want to delete this gallery photo?")) {
-                let gallery = JSON.parse(localStorage.getItem('hotel_gallery')) || [];
-                gallery = gallery.filter(g => g.id !== id);
-                localStorage.setItem('hotel_gallery', JSON.stringify(gallery));
-                showToast(`Gallery image removed.`, 'success');
-                loadAllDatabaseViews();
+                const passcode = sessionStorage.getItem('admin_passcode') || '';
+                try {
+                    const res = await fetch(`/api/gallery?id=${id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${passcode}`
+                        }
+                    });
+
+                    if (res.ok) {
+                        showToast(`Gallery image removed.`, 'success');
+                        await syncAllAdminData();
+                        loadAllDatabaseViews();
+                    } else {
+                        const errData = await res.json();
+                        showToast(`Error: ${errData.error || 'Failed to delete image.'}`, 'danger');
+                    }
+                } catch (err) {
+                    showToast('Connection to database failed.', 'danger');
+                    console.error(err);
+                }
             }
         };
 
@@ -1857,13 +1963,29 @@
             openModal('modal-attraction');
         };
 
-        window.deleteAttraction = function(id) {
+        window.deleteAttraction = async function(id) {
             if (confirm("Are you sure you want to delete this attraction?")) {
-                let attractions = JSON.parse(localStorage.getItem('hotel_attractions')) || [];
-                attractions = attractions.filter(a => a.id !== id);
-                localStorage.setItem('hotel_attractions', JSON.stringify(attractions));
-                showToast(`Attraction removed.`, 'success');
-                loadAllDatabaseViews();
+                const passcode = sessionStorage.getItem('admin_passcode') || '';
+                try {
+                    const res = await fetch(`/api/attractions?id=${id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${passcode}`
+                        }
+                    });
+
+                    if (res.ok) {
+                        showToast(`Attraction removed.`, 'success');
+                        await syncAllAdminData();
+                        loadAllDatabaseViews();
+                    } else {
+                        const errData = await res.json();
+                        showToast(`Error: ${errData.error || 'Failed to delete attraction.'}`, 'danger');
+                    }
+                } catch (err) {
+                    showToast('Connection to database failed.', 'danger');
+                    console.error(err);
+                }
             }
         };
 
@@ -1911,13 +2033,29 @@
             openModal('modal-testimonial');
         };
 
-        window.deleteTestimonial = function(id) {
+        window.deleteTestimonial = async function(id) {
             if (confirm("Are you sure you want to delete this guest testimonial?")) {
-                let testimonials = JSON.parse(localStorage.getItem('hotel_testimonials')) || [];
-                testimonials = testimonials.filter(t => t.id !== id);
-                localStorage.setItem('hotel_testimonials', JSON.stringify(testimonials));
-                showToast(`Review removed.`, 'success');
-                loadAllDatabaseViews();
+                const passcode = sessionStorage.getItem('admin_passcode') || '';
+                try {
+                    const res = await fetch(`/api/testimonials?id=${id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${passcode}`
+                        }
+                    });
+
+                    if (res.ok) {
+                        showToast(`Review removed.`, 'success');
+                        await syncAllAdminData();
+                        loadAllDatabaseViews();
+                    } else {
+                        const errData = await res.json();
+                        showToast(`Error: ${errData.error || 'Failed to delete review.'}`, 'danger');
+                    }
+                } catch (err) {
+                    showToast('Connection to database failed.', 'danger');
+                    console.error(err);
+                }
             }
         };
 
@@ -2000,10 +2138,9 @@
                 roomImageFile.addEventListener('change', (e) => {
                     const file = e.target.files[0];
                     if (file) {
-                        showToast("Compressing local image...", "info");
                         compressImageFile(file, (dataUrl) => {
                             document.getElementById('room-form-image').value = dataUrl;
-                            showToast("Local image uploaded & compressed successfully!", "success");
+                            showToast("Image compressed and loaded successfully.", "info");
                         });
                     }
                 });
@@ -2014,89 +2151,43 @@
                 galleryImageFile.addEventListener('change', (e) => {
                     const file = e.target.files[0];
                     if (file) {
-                        showToast("Compressing local image...", "info");
                         compressImageFile(file, (dataUrl) => {
                             document.getElementById('gallery-form-image').value = dataUrl;
-                            showToast("Local image uploaded & compressed successfully!", "success");
+                            showToast("Gallery photo compressed and loaded successfully.", "info");
                         });
                     }
                 });
             }
 
-            // Offline booking dialog trigger
-            const addBookingBtn = document.getElementById('btn-add-offline-booking');
-            if (addBookingBtn) {
-                addBookingBtn.addEventListener('click', () => {
-                    const form = document.getElementById('offline-booking-form');
-                    form.reset();
-                    
-                    // Populate room category options dynamically
-                    const roomSelect = document.getElementById('booking-form-roomtype');
-                    const rooms = JSON.parse(localStorage.getItem('hotel_rooms')) || [];
-                    roomSelect.innerHTML = '';
-                    rooms.forEach(r => {
-                        const opt = document.createElement('option');
-                        opt.value = r.id;
-                        opt.textContent = `${r.name} (₹${r.price.toLocaleString('en-IN')}/night)`;
-                        roomSelect.appendChild(opt);
-                    });
-
-                    // Set default dates to today/tomorrow
-                    const todayStr = new Date().toISOString().split('T')[0];
-                    const tomorrow = new Date();
-                    tomorrow.setDate(tomorrow.getDate() + 1);
-                    const tomorrowStr = tomorrow.toISOString().split('T')[0];
-                    
-                    document.getElementById('booking-form-checkin').value = todayStr;
-                    document.getElementById('booking-form-checkin').min = todayStr;
-                    document.getElementById('booking-form-checkout').value = tomorrowStr;
-                    document.getElementById('booking-form-checkout').min = tomorrowStr;
-
-                    // Trigger initial cost calculation
-                    calculateOfflineCost();
-
-                    openModal('modal-booking');
-                });
-            }
+            // Populates walk-in booking details popup selectors
+            document.getElementById('btn-calc-offline-cost').addEventListener('click', () => {
+                calculateOfflineCost();
+            });
 
             function calculateOfflineCost() {
-                const roomSelect = document.getElementById('booking-form-roomtype');
-                const checkinVal = document.getElementById('booking-form-checkin').value;
-                const checkoutVal = document.getElementById('booking-form-checkout').value;
+                const checkin = document.getElementById('booking-form-checkin').value;
+                const checkout = document.getElementById('booking-form-checkout').value;
+                const roomId = document.getElementById('booking-form-roomtype').value;
                 const guests = parseInt(document.getElementById('booking-form-guests').value) || 2;
                 const costInput = document.getElementById('booking-form-cost');
 
-                const roomId = roomSelect.value;
-                const rooms = JSON.parse(localStorage.getItem('hotel_rooms')) || [];
-                const chosenRoom = rooms.find(r => r.id === roomId);
-
-                if (!chosenRoom || !checkinVal || !checkoutVal) {
-                    costInput.value = '';
+                if (!checkin || !checkout || !roomId) {
+                    showToast("Please enter checkin/checkout dates and select a room.", "warning");
                     return;
                 }
 
-                const d1 = new Date(checkinVal);
-                const d2 = new Date(checkoutVal);
-                const diff = Math.abs(d2 - d1);
-                const nights = Math.ceil(diff / (1000 * 60 * 60 * 24)) || 1;
+                const rooms = JSON.parse(localStorage.getItem('hotel_rooms')) || [];
+                const roomObj = rooms.find(r => r.id === roomId);
+                if (!roomObj) return;
 
-                const basePrice = chosenRoom.price;
-                const extraGuestFee = 1000;
-                const extraCount = Math.max(0, guests - 2);
-
-                const estimatedCost = (basePrice * nights) + (extraCount * extraGuestFee * nights);
-                costInput.value = estimatedCost;
-            }
-
-            const calcOfflineCostBtn = document.getElementById('btn-calc-offline-cost');
-            if (calcOfflineCostBtn) {
-                calcOfflineCostBtn.addEventListener('click', calculateOfflineCost);
+                const daysDiff = Math.ceil(Math.abs(new Date(checkout) - new Date(checkin)) / (1000 * 60 * 60 * 24)) || 1;
+                const extraGuests = Math.max(0, guests - 2);
+                const finalCost = (roomObj.price * daysDiff) + (extraGuests * 1000 * daysDiff);
+                costInput.value = finalCost;
             }
 
             const offlineTriggers = [
                 document.getElementById('booking-form-roomtype'),
-                document.getElementById('booking-form-checkin'),
-                document.getElementById('booking-form-checkout'),
                 document.getElementById('booking-form-guests')
             ];
             offlineTriggers.forEach(el => {
@@ -2112,7 +2203,7 @@
             }
 
             // Offline booking form submission
-            document.getElementById('offline-booking-form').addEventListener('submit', (e) => {
+            document.getElementById('offline-booking-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
 
                 const name = document.getElementById('booking-form-name').value;
@@ -2147,19 +2238,36 @@
                     date: new Date().toLocaleDateString('en-IN') + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 };
 
-                const enquiries = JSON.parse(localStorage.getItem('hotel_enquiries')) || [];
-                enquiries.unshift(newBooking);
-                localStorage.setItem('hotel_enquiries', JSON.stringify(enquiries));
+                const passcode = sessionStorage.getItem('admin_passcode') || '';
+                try {
+                    const res = await fetch('/api/enquiries', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${passcode}`
+                        },
+                        body: JSON.stringify(newBooking)
+                    });
 
-                closeModal('modal-booking');
-                showToast("Walk-in booking logged successfully!", "success");
-                loadAllDatabaseViews();
+                    if (res.ok) {
+                        closeModal('modal-booking');
+                        showToast("Walk-in booking logged successfully!", "success");
+                        await syncAllAdminData();
+                        loadAllDatabaseViews();
+                    } else {
+                        const errData = await res.json();
+                        showToast(`Error: ${errData.error || 'Failed to save booking.'}`, 'danger');
+                    }
+                } catch (err) {
+                    showToast('Connection to database failed.', 'danger');
+                    console.error(err);
+                }
             });
 
             // 1. Room form submission
-            document.getElementById('room-form').addEventListener('submit', (e) => {
+            document.getElementById('room-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const id = document.getElementById('room-form-id').value;
+                let id = document.getElementById('room-form-id').value;
                 const name = document.getElementById('room-form-name').value;
                 const tagline = document.getElementById('room-form-tagline').value;
                 const price = parseInt(document.getElementById('room-form-price').value) || 0;
@@ -2172,130 +2280,196 @@
                     amenities.push(box.value);
                 });
 
-                const rooms = JSON.parse(localStorage.getItem('hotel_rooms')) || [];
-
-                if (id) {
-                    // Update
-                    const idx = rooms.findIndex(r => r.id === id);
-                    if (idx !== -1) {
-                        rooms[idx] = { id, name, tagline, price, inventory, image, description, amenities };
-                        showToast(`Room "${name}" updated successfully.`, 'success');
-                    }
-                } else {
-                    // Create
-                    const newId = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-                    if (rooms.some(r => r.id === newId)) {
+                if (!id) {
+                    // Create mode: generate slug
+                    id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+                    const rooms = JSON.parse(localStorage.getItem('hotel_rooms')) || [];
+                    if (rooms.some(r => r.id === id)) {
                         showToast(`A room with a similar name already exists. Please modify.`, 'danger');
                         return;
                     }
-                    rooms.push({ id: newId, name, tagline, price, inventory, image, description, amenities });
-                    showToast(`Room category "${name}" added.`, 'success');
                 }
 
-                localStorage.setItem('hotel_rooms', JSON.stringify(rooms));
-                closeModal('modal-room');
-                loadAllDatabaseViews();
+                const roomData = { id, name, tagline, price, inventory, image, description, amenities };
+                const passcode = sessionStorage.getItem('admin_passcode') || '';
+
+                try {
+                    const res = await fetch('/api/rooms', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${passcode}`
+                        },
+                        body: JSON.stringify(roomData)
+                    });
+
+                    if (res.ok) {
+                        closeModal('modal-room');
+                        showToast(`Room category "${name}" saved successfully.`, 'success');
+                        await syncAllAdminData();
+                        loadAllDatabaseViews();
+                    } else {
+                        const errData = await res.json();
+                        showToast(`Error: ${errData.error || 'Failed to save room.'}`, 'danger');
+                    }
+                } catch (err) {
+                    showToast('Connection to database failed.', 'danger');
+                    console.error(err);
+                }
             });
 
             // 2. Gallery form submission
-            document.getElementById('gallery-form').addEventListener('submit', (e) => {
+            document.getElementById('gallery-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const id = document.getElementById('gallery-form-id').value || 'gal_' + Date.now();
                 const title = document.getElementById('gallery-form-title').value;
                 const category = document.getElementById('gallery-form-category').value;
                 const image = document.getElementById('gallery-form-image').value;
 
-                const gallery = JSON.parse(localStorage.getItem('hotel_gallery')) || [];
-                const existingIdx = gallery.findIndex(g => g.id === id);
+                const galleryData = { id, title, category, image };
+                const passcode = sessionStorage.getItem('admin_passcode') || '';
 
-                if (existingIdx !== -1) {
-                    gallery[existingIdx] = { id, title, category, image };
-                } else {
-                    gallery.push({ id, title, category, image });
+                try {
+                    const res = await fetch('/api/gallery', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${passcode}`
+                        },
+                        body: JSON.stringify(galleryData)
+                    });
+
+                    if (res.ok) {
+                        closeModal('modal-gallery');
+                        showToast(`Gallery asset saved successfully.`, 'success');
+                        await syncAllAdminData();
+                        loadAllDatabaseViews();
+                    } else {
+                        const errData = await res.json();
+                        showToast(`Error: ${errData.error || 'Failed to save gallery asset.'}`, 'danger');
+                    }
+                } catch (err) {
+                    showToast('Connection to database failed.', 'danger');
+                    console.error(err);
                 }
-
-                localStorage.setItem('hotel_gallery', JSON.stringify(gallery));
-                closeModal('modal-gallery');
-                showToast(`Gallery asset saved successfully.`, 'success');
-                loadAllDatabaseViews();
             });
 
             // 3. Attraction form submission
-            document.getElementById('attraction-form').addEventListener('submit', (e) => {
+            document.getElementById('attraction-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const id = document.getElementById('attraction-form-id').value;
+                const id = document.getElementById('attraction-form-id').value || 'att_' + Date.now();
                 const name = document.getElementById('attraction-form-name').value;
                 const distance = document.getElementById('attraction-form-distance').value;
                 const driveTime = document.getElementById('attraction-form-drivetime').value;
                 const image = document.getElementById('attraction-form-image').value;
                 const description = document.getElementById('attraction-form-desc').value;
 
-                const attractions = JSON.parse(localStorage.getItem('hotel_attractions')) || [];
+                const attractionData = { id, name, distance, driveTime, image, description };
+                const passcode = sessionStorage.getItem('admin_passcode') || '';
 
-                if (id) {
-                    const idx = attractions.findIndex(a => a.id === id);
-                    if (idx !== -1) {
-                        attractions[idx] = { id, name, distance, driveTime, image, description };
-                        showToast(`Destination "${name}" updated.`, 'success');
+                try {
+                    const res = await fetch('/api/attractions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${passcode}`
+                        },
+                        body: JSON.stringify(attractionData)
+                    });
+
+                    if (res.ok) {
+                        closeModal('modal-attraction');
+                        showToast(`Destination "${name}" saved successfully.`, 'success');
+                        await syncAllAdminData();
+                        loadAllDatabaseViews();
+                    } else {
+                        const errData = await res.json();
+                        showToast(`Error: ${errData.error || 'Failed to save attraction.'}`, 'danger');
                     }
-                } else {
-                    const newId = 'att_' + Date.now();
-                    attractions.push({ id: newId, name, distance, driveTime, image, description });
-                    showToast(`Destination "${name}" added to list.`, 'success');
+                } catch (err) {
+                    showToast('Connection to database failed.', 'danger');
+                    console.error(err);
                 }
-
-                localStorage.setItem('hotel_attractions', JSON.stringify(attractions));
-                closeModal('modal-attraction');
-                loadAllDatabaseViews();
             });
 
             // 4. Testimonial form submission
-            document.getElementById('testimonial-form').addEventListener('submit', (e) => {
+            document.getElementById('testimonial-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const id = document.getElementById('testimonial-form-id').value;
+                const id = document.getElementById('testimonial-form-id').value || 'test_' + Date.now();
                 const author = document.getElementById('testimonial-form-author').value;
                 const location = document.getElementById('testimonial-form-location').value;
                 const avatar = document.getElementById('testimonial-form-avatar').value;
                 const quote = document.getElementById('testimonial-form-quote').value;
 
-                const testimonials = JSON.parse(localStorage.getItem('hotel_testimonials')) || [];
+                const testimonialData = { id, author, location, avatar, quote };
+                const passcode = sessionStorage.getItem('admin_passcode') || '';
 
-                if (id) {
-                    const idx = testimonials.findIndex(t => t.id === id);
-                    if (idx !== -1) {
-                        testimonials[idx] = { id, author, location, avatar, quote };
-                        showToast(`Review by "${author}" updated.`, 'success');
+                try {
+                    const res = await fetch('/api/testimonials', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${passcode}`
+                        },
+                        body: JSON.stringify(testimonialData)
+                    });
+
+                    if (res.ok) {
+                        closeModal('modal-testimonial');
+                        showToast(`Guest review by "${author}" saved.`, 'success');
+                        await syncAllAdminData();
+                        loadAllDatabaseViews();
+                    } else {
+                        const errData = await res.json();
+                        showToast(`Error: ${errData.error || 'Failed to save review.'}`, 'danger');
                     }
-                } else {
-                    const newId = 'test_' + Date.now();
-                    testimonials.push({ id: newId, author, location, avatar, quote });
-                    showToast(`Review by "${author}" added.`, 'success');
+                } catch (err) {
+                    showToast('Connection to database failed.', 'danger');
+                    console.error(err);
                 }
-
-                localStorage.setItem('hotel_testimonials', JSON.stringify(testimonials));
-                closeModal('modal-testimonial');
-                loadAllDatabaseViews();
             });
 
             // 5. General Settings Form Submission
-            document.getElementById('settings-form').addEventListener('submit', (e) => {
+            document.getElementById('settings-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const settings = JSON.parse(localStorage.getItem('hotel_settings')) || {};
                 
-                settings.phoneFrontDesk = document.getElementById('set-phone-desk').value;
-                settings.phoneReservations = document.getElementById('set-phone-res').value;
-                settings.emailInfo = document.getElementById('set-email-info').value;
-                settings.emailBooking = document.getElementById('set-email-book').value;
-                settings.whatsapp = document.getElementById('set-whatsapp').value;
-                settings.address = document.getElementById('set-address').value;
+                const settingsData = {
+                    phoneFrontDesk: document.getElementById('set-phone-desk').value,
+                    phoneReservations: document.getElementById('set-phone-res').value,
+                    emailInfo: document.getElementById('set-email-info').value,
+                    emailBooking: document.getElementById('set-email-book').value,
+                    whatsapp: document.getElementById('set-whatsapp').value,
+                    address: document.getElementById('set-address').value
+                };
 
-                localStorage.setItem('hotel_settings', JSON.stringify(settings));
-                showToast(`Contact settings updated successfully.`, 'success');
-                loadAllDatabaseViews();
+                const passcode = sessionStorage.getItem('admin_passcode') || '';
+
+                try {
+                    const res = await fetch('/api/settings', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${passcode}`
+                        },
+                        body: JSON.stringify(settingsData)
+                    });
+
+                    if (res.ok) {
+                        showToast(`Contact settings updated successfully.`, 'success');
+                        await syncAllAdminData();
+                        loadAllDatabaseViews();
+                    } else {
+                        const errData = await res.json();
+                        showToast(`Error: ${errData.error || 'Failed to update settings.'}`, 'danger');
+                    }
+                } catch (err) {
+                    showToast('Connection to database failed.', 'danger');
+                    console.error(err);
+                }
             });
 
             // 6. Admin Passcode update
-            document.getElementById('passcode-form').addEventListener('submit', (e) => {
+            document.getElementById('passcode-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const newPass = document.getElementById('set-passcode').value;
                 
@@ -2304,61 +2478,123 @@
                     return;
                 }
 
-                const settings = JSON.parse(localStorage.getItem('hotel_settings')) || {};
-                settings.passcode = newPass;
-                localStorage.setItem('hotel_settings', JSON.stringify(settings));
-                
-                document.getElementById('set-passcode').value = '';
-                showToast("Admin passcode changed successfully.", "success");
-                loadAllDatabaseViews();
+                const passcode = sessionStorage.getItem('admin_passcode') || '';
+
+                try {
+                    const res = await fetch('/api/settings', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${passcode}`
+                        },
+                        body: JSON.stringify({ passcode: newPass })
+                    });
+
+                    if (res.ok) {
+                        // Update current passcode in sessionStorage
+                        sessionStorage.setItem('admin_passcode', newPass);
+                        document.getElementById('set-passcode').value = '';
+                        showToast("Admin passcode changed successfully.", "success");
+                        await syncAllAdminData();
+                        loadAllDatabaseViews();
+                    } else {
+                        const errData = await res.json();
+                        showToast(`Error: ${errData.error || 'Failed to update passcode.'}`, 'danger');
+                    }
+                } catch (err) {
+                    showToast('Connection to database failed.', 'danger');
+                    console.error(err);
+                }
             });
 
             // 7. Clear Enquiries Logs
-            document.getElementById('btn-clear-all-enquiries').addEventListener('click', () => {
+            document.getElementById('btn-clear-all-enquiries').addEventListener('click', async () => {
                 if (confirm("Are you sure you want to clear all reservation enquiries? This will delete all entries in the inbox log!")) {
-                    localStorage.setItem('hotel_enquiries', JSON.stringify([]));
-                    showToast("Enquiry inbox cleared.", "success");
-                    loadAllDatabaseViews();
+                    const passcode = sessionStorage.getItem('admin_passcode') || '';
+                    try {
+                        const res = await fetch('/api/enquiries?clear=true', {
+                            method: 'DELETE',
+                            headers: {
+                                'Authorization': `Bearer ${passcode}`
+                            }
+                        });
+
+                        if (res.ok) {
+                            showToast("Enquiry inbox cleared.", "success");
+                            await syncAllAdminData();
+                            loadAllDatabaseViews();
+                        } else {
+                            const errData = await res.json();
+                            showToast(`Error: ${errData.error || 'Failed to clear enquiries.'}`, 'danger');
+                        }
+                    } catch (err) {
+                        showToast('Connection to database failed.', 'danger');
+                        console.error(err);
+                    }
                 }
             });
 
             // 8. Reset database
-            document.getElementById('btn-reset-db').addEventListener('click', () => {
+            document.getElementById('btn-reset-db').addEventListener('click', async () => {
                 if (confirm("CRITICAL WARNING: This will wipe out all custom modifications, rooms, prices, bookings, and restore original website details. Do you wish to continue?")) {
-                    localStorage.removeItem('hotel_rooms');
-                    localStorage.removeItem('hotel_gallery');
-                    localStorage.removeItem('hotel_attractions');
-                    localStorage.removeItem('hotel_testimonials');
-                    localStorage.removeItem('hotel_settings');
-                    localStorage.removeItem('hotel_enquiries');
-                    
-                    // Reload page and prompt seed init
-                    window.location.reload();
+                    const passcode = sessionStorage.getItem('admin_passcode') || '';
+                    try {
+                        const res = await fetch('/api/backup', {
+                            method: 'DELETE',
+                            headers: {
+                                'Authorization': `Bearer ${passcode}`
+                            }
+                        });
+
+                        if (res.ok) {
+                            localStorage.clear();
+                            showToast("Database reset successfully! Reloading...", "success");
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1000);
+                        } else {
+                            const errData = await res.json();
+                            showToast(`Error: ${errData.error || 'Failed to reset database.'}`, 'danger');
+                        }
+                    } catch (err) {
+                        showToast('Connection to database failed.', 'danger');
+                        console.error(err);
+                    }
                 }
             });
 
             // 9. Export Database (JSON Download)
-            document.getElementById('btn-export-db').addEventListener('click', () => {
-                const db = {
-                    rooms: JSON.parse(localStorage.getItem('hotel_rooms')),
-                    gallery: JSON.parse(localStorage.getItem('hotel_gallery')),
-                    attractions: JSON.parse(localStorage.getItem('hotel_attractions')),
-                    testimonials: JSON.parse(localStorage.getItem('hotel_testimonials')),
-                    settings: JSON.parse(localStorage.getItem('hotel_settings')),
-                    enquiries: JSON.parse(localStorage.getItem('hotel_enquiries'))
-                };
+            document.getElementById('btn-export-db').addEventListener('click', async () => {
+                const passcode = sessionStorage.getItem('admin_passcode') || '';
+                try {
+                    const res = await fetch('/api/backup', {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${passcode}`
+                        }
+                    });
 
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
-                const downloadAnchor = document.createElement('a');
-                downloadAnchor.setAttribute("href", dataStr);
-                
-                const timeStr = new Date().toISOString().slice(0,10);
-                downloadAnchor.setAttribute("download", `parasol_inn_db_backup_${timeStr}.json`);
-                document.body.appendChild(downloadAnchor);
-                downloadAnchor.click();
-                downloadAnchor.remove();
+                    if (res.ok) {
+                        const db = await res.json();
+                        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
+                        const downloadAnchor = document.createElement('a');
+                        downloadAnchor.setAttribute("href", dataStr);
+                        
+                        const timeStr = new Date().toISOString().slice(0,10);
+                        downloadAnchor.setAttribute("download", `parasol_inn_db_backup_${timeStr}.json`);
+                        document.body.appendChild(downloadAnchor);
+                        downloadAnchor.click();
+                        downloadAnchor.remove();
 
-                showToast("Database exported successfully as JSON.", "success");
+                        showToast("Database exported successfully as JSON.", "success");
+                    } else {
+                        const errData = await res.json();
+                        showToast(`Error: ${errData.error || 'Failed to export backup.'}`, 'danger');
+                    }
+                } catch (err) {
+                    showToast('Connection to database failed.', 'danger');
+                    console.error(err);
+                }
             });
 
             // 10. Import Database Trigger
@@ -2371,7 +2607,7 @@
                 if (!file) return;
 
                 const reader = new FileReader();
-                reader.onload = function(evt) {
+                reader.onload = async function(evt) {
                     try {
                         const parsed = JSON.parse(evt.target.result);
                         
@@ -2381,17 +2617,26 @@
                             return;
                         }
 
-                        localStorage.setItem('hotel_rooms', JSON.stringify(parsed.rooms));
-                        localStorage.setItem('hotel_gallery', JSON.stringify(parsed.gallery));
-                        localStorage.setItem('hotel_attractions', JSON.stringify(parsed.attractions || []));
-                        localStorage.setItem('hotel_testimonials', JSON.stringify(parsed.testimonials || []));
-                        localStorage.setItem('hotel_settings', JSON.stringify(parsed.settings));
-                        localStorage.setItem('hotel_enquiries', JSON.stringify(parsed.enquiries || []));
+                        const passcode = sessionStorage.getItem('admin_passcode') || '';
+                        
+                        const res = await fetch('/api/backup', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${passcode}`
+                            },
+                            body: JSON.stringify(parsed)
+                        });
 
-                        showToast("System database restored successfully!", "success");
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1000);
+                        if (res.ok) {
+                            showToast("System database restored successfully!", "success");
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1000);
+                        } else {
+                            const errData = await res.json();
+                            showToast(`Error: ${errData.error || 'Failed to restore database.'}`, 'danger');
+                        }
 
                     } catch (err) {
                         showToast("Failed to parse JSON backup. File may be corrupted.", "danger");
