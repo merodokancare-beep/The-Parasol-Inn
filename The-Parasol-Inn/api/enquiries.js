@@ -51,41 +51,56 @@ export default async function handler(req, res) {
     }
   }
 
-  // Admin authorization check for other methods (GET, PUT, DELETE)
-  const isAuthorized = await verifyAdmin(req);
-  if (!isAuthorized) {
-    return res.status(401).json({ error: 'Unauthorized admin access.' });
-  }
-
-  // GET (List all enquiries)
+  // GET (List all enquiries - Public is allowed sanitized list for availability check, Admin gets full details)
   if (method === 'GET') {
     try {
+      const isAuthorized = await verifyAdmin(req);
+      
       // Sort enquiries by id descending so newest are on top (since id is enq_timestamp)
       const enquiries = await sql`SELECT * FROM enquiries ORDER BY date DESC, id DESC`;
       
-      // Map database schema to frontend properties
-      const mapped = enquiries.map(e => ({
-        id: e.id,
-        name: e.name,
-        email: e.email,
-        phone: e.phone,
-        checkin: e.checkin,
-        checkout: e.checkout,
-        guests: e.guests,
-        roomType: e.room_type_name,
-        room_type: e.room_type_id,
-        message: e.message,
-        cost: e.cost,
-        status: e.status,
-        source: e.source,
-        date: e.date
-      }));
-
-      return res.status(200).json(mapped);
+      if (isAuthorized) {
+        // Map database schema to frontend properties
+        const mapped = enquiries.map(e => ({
+          id: e.id,
+          name: e.name,
+          email: e.email,
+          phone: e.phone,
+          checkin: e.checkin,
+          checkout: e.checkout,
+          guests: e.guests,
+          roomType: e.room_type_name,
+          room_type: e.room_type_id,
+          message: e.message,
+          cost: e.cost,
+          status: e.status,
+          source: e.source,
+          date: e.date
+        }));
+        return res.status(200).json(mapped);
+      } else {
+        // Return only status, checkin, checkout, roomType, and room_type for public availability calculation
+        const sanitized = enquiries
+          .filter(e => e.status === 'Confirmed')
+          .map(e => ({
+            checkin: e.checkin,
+            checkout: e.checkout,
+            roomType: e.room_type_name,
+            room_type: e.room_type_id,
+            status: e.status
+          }));
+        return res.status(200).json(sanitized);
+      }
     } catch (error) {
       console.error('Error fetching enquiries:', error);
       return res.status(500).json({ error: error.message });
     }
+  }
+
+  // Admin authorization check for other mutating methods (PUT, DELETE)
+  const isAuthorized = await verifyAdmin(req);
+  if (!isAuthorized) {
+    return res.status(401).json({ error: 'Unauthorized admin access.' });
   }
 
   // PUT (Update status)
