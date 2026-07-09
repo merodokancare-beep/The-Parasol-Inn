@@ -1565,14 +1565,48 @@
         /* ==========================================
            DATABASE LOADING & RENDERING (CRUD VIEWS)
            ========================================== */
-        function loadAllDatabaseViews() {
-            // Load all local storage tables
-            const rooms = JSON.parse(localStorage.getItem('hotel_rooms')) || [];
-            const gallery = JSON.parse(localStorage.getItem('hotel_gallery')) || [];
-            const attractions = JSON.parse(localStorage.getItem('hotel_attractions')) || [];
-            const testimonials = JSON.parse(localStorage.getItem('hotel_testimonials')) || [];
-            const settings = JSON.parse(localStorage.getItem('hotel_settings')) || {};
-            const enquiries = JSON.parse(localStorage.getItem('hotel_enquiries')) || [];
+        async function loadAllDatabaseViews() {
+            let rooms = [];
+            let gallery = [];
+            let attractions = [];
+            let testimonials = [];
+            let settings = {};
+            let enquiries = [];
+
+            try {
+                const resRooms = await fetch('/api/rooms');
+                if (resRooms.ok) rooms = await resRooms.json();
+                
+                const resGallery = await fetch('/api/gallery');
+                if (resGallery.ok) gallery = await resGallery.json();
+
+                const resAtt = await fetch('/api/attractions');
+                if (resAtt.ok) attractions = await resAtt.json();
+
+                const resTest = await fetch('/api/testimonials');
+                if (resTest.ok) testimonials = await resTest.json();
+
+                const resSet = await fetch('/api/settings');
+                if (resSet.ok) settings = await resSet.json();
+
+                const resEnq = await fetch('/api/enquiries');
+                if (resEnq.ok) enquiries = await resEnq.json();
+            } catch(e) {
+                console.warn("API loading failed, using localStorage fallback", e);
+                rooms = JSON.parse(localStorage.getItem('hotel_rooms')) || [];
+                gallery = JSON.parse(localStorage.getItem('hotel_gallery')) || [];
+                attractions = JSON.parse(localStorage.getItem('hotel_attractions')) || [];
+                testimonials = JSON.parse(localStorage.getItem('hotel_testimonials')) || [];
+                settings = JSON.parse(localStorage.getItem('hotel_settings')) || {};
+                enquiries = JSON.parse(localStorage.getItem('hotel_enquiries')) || [];
+            }
+
+            window.adminRooms = rooms;
+            window.adminGallery = gallery;
+            window.adminAttractions = attractions;
+            window.adminTestimonials = testimonials;
+            window.adminSettings = settings;
+            window.adminEnquiries = enquiries;
 
             // Update stats cards
             document.getElementById('stat-rooms').textContent = rooms.length;
@@ -1686,23 +1720,49 @@
             });
         }
 
-        window.changeEnquiryStatus = function(id, newStatus) {
-            const enquiries = JSON.parse(localStorage.getItem('hotel_enquiries')) || [];
-            const idx = enquiries.findIndex(e => e.id === id);
-            if (idx !== -1) {
-                enquiries[idx].status = newStatus;
-                localStorage.setItem('hotel_enquiries', JSON.stringify(enquiries));
-                showToast(`Enquiry status changed to ${newStatus}.`, 'success');
-                loadAllDatabaseViews();
+        window.changeEnquiryStatus = async function(id, newStatus) {
+            try {
+                const res = await fetch('/api/enquiries', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, status: newStatus })
+                });
+                if (res.ok) {
+                    showToast(`Enquiry status changed to ${newStatus}.`, 'success');
+                } else {
+                    showToast("Failed to update status on server.", "danger");
+                }
+            } catch(e) {
+                console.error(e);
+                showToast("Connection error, falling back to local.", "warning");
+                const enquiries = JSON.parse(localStorage.getItem('hotel_enquiries')) || [];
+                const idx = enquiries.findIndex(e => e.id === id);
+                if (idx !== -1) {
+                    enquiries[idx].status = newStatus;
+                    localStorage.setItem('hotel_enquiries', JSON.stringify(enquiries));
+                }
             }
+            loadAllDatabaseViews();
         };
 
-        window.deleteEnquiry = function(id) {
+        window.deleteEnquiry = async function(id) {
             if (confirm("Are you sure you want to delete this enquiry request record? This cannot be undone.")) {
-                let enquiries = JSON.parse(localStorage.getItem('hotel_enquiries')) || [];
-                enquiries = enquiries.filter(e => e.id !== id);
-                localStorage.setItem('hotel_enquiries', JSON.stringify(enquiries));
-                showToast(`Enquiry record deleted.`, 'success');
+                try {
+                    const res = await fetch(`/api/enquiries?id=${id}`, {
+                        method: 'DELETE'
+                    });
+                    if (res.ok) {
+                        showToast(`Enquiry record deleted.`, 'success');
+                    } else {
+                        showToast("Failed to delete from server.", "danger");
+                    }
+                } catch(e) {
+                    console.error(e);
+                    showToast("Connection error, falling back to local.", "warning");
+                    let enquiries = JSON.parse(localStorage.getItem('hotel_enquiries')) || [];
+                    enquiries = enquiries.filter(e => e.id !== id);
+                    localStorage.setItem('hotel_enquiries', JSON.stringify(enquiries));
+                }
                 loadAllDatabaseViews();
             }
         };
@@ -1744,7 +1804,7 @@
         }
 
         window.editRoom = function(id) {
-            const rooms = JSON.parse(localStorage.getItem('hotel_rooms')) || [];
+            const rooms = window.adminRooms || [];
             const room = rooms.find(r => r.id === id);
             if (!room) return;
 
@@ -1766,12 +1826,24 @@
             openModal('modal-room');
         };
 
-        window.deleteRoom = function(id) {
+        window.deleteRoom = async function(id) {
             if (confirm("Are you sure you want to delete this room tier? Any estimations using it will break.")) {
-                let rooms = JSON.parse(localStorage.getItem('hotel_rooms')) || [];
-                rooms = rooms.filter(r => r.id !== id);
-                localStorage.setItem('hotel_rooms', JSON.stringify(rooms));
-                showToast(`Room category deleted.`, 'success');
+                try {
+                    const res = await fetch(`/api/rooms?id=${id}`, {
+                        method: 'DELETE'
+                    });
+                    if (res.ok) {
+                        showToast(`Room category deleted.`, 'success');
+                    } else {
+                        showToast("Failed to delete room on server.", "danger");
+                    }
+                } catch(e) {
+                    console.error(e);
+                    showToast("Connection error, falling back to local.", "warning");
+                    let rooms = JSON.parse(localStorage.getItem('hotel_rooms')) || [];
+                    rooms = rooms.filter(r => r.id !== id);
+                    localStorage.setItem('hotel_rooms', JSON.stringify(rooms));
+                }
                 loadAllDatabaseViews();
             }
         };

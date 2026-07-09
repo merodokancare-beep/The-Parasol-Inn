@@ -1,9 +1,12 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. Initialize Database Schema
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Initialize Database local defaults for fallback
     initDatabase();
 
+    // Load Vercel backend database to cache
+    await loadCachedDatabase();
+
     // Auto-checkout past bookings
-    autoCheckOutPastBookings();
+    await autoCheckOutPastBookings();
 
     // 2. Render Dynamic Components across Pages
     renderDynamicContent();
@@ -149,49 +152,75 @@ const DEFAULT_SETTINGS = {
     address: "The Parasol Inn Sikkim, Near Ridge Park, Gangtok, Sikkim - 737101, India",
     passcode: "admin123"
 };
+window.cachedRooms = DEFAULT_ROOMS;
+window.cachedGallery = DEFAULT_GALLERY;
+window.cachedAttractions = DEFAULT_ATTRACTIONS;
+window.cachedTestimonials = DEFAULT_TESTIMONIALS;
+window.cachedSettings = DEFAULT_SETTINGS;
+window.cachedEnquiries = [];
 
-function initDatabase() {
-    if (!localStorage.getItem('hotel_rooms')) {
-        localStorage.setItem('hotel_rooms', JSON.stringify(DEFAULT_ROOMS));
-    } else {
-        // Enforce inventory field in existing data schema
-        try {
-            let rooms = JSON.parse(localStorage.getItem('hotel_rooms')) || [];
-            let modified = false;
-            rooms.forEach(r => {
-                if (r.inventory === undefined) {
-                    const defaultRoom = DEFAULT_ROOMS.find(d => d.id === r.id);
-                    r.inventory = defaultRoom ? defaultRoom.inventory : 3;
-                    modified = true;
-                }
-            });
-            if (modified) {
-                localStorage.setItem('hotel_rooms', JSON.stringify(rooms));
-            }
-        } catch (e) {
-            console.error("Schema patch failed", e);
+async function loadCachedDatabase() {
+    try {
+        const res = await fetch('/api/rooms');
+        if (res.ok) window.cachedRooms = await res.json();
+    } catch(e) {
+        console.warn("Using localStorage rooms fallback", e);
+        window.cachedRooms = JSON.parse(localStorage.getItem('hotel_rooms')) || DEFAULT_ROOMS;
+    }
+
+    try {
+        const res = await fetch('/api/gallery');
+        if (res.ok) window.cachedGallery = await res.json();
+    } catch(e) {
+        console.warn("Using localStorage gallery fallback", e);
+        window.cachedGallery = JSON.parse(localStorage.getItem('hotel_gallery')) || DEFAULT_GALLERY;
+    }
+
+    try {
+        const res = await fetch('/api/attractions');
+        if (res.ok) window.cachedAttractions = await res.json();
+    } catch(e) {
+        console.warn("Using localStorage attractions fallback", e);
+        window.cachedAttractions = JSON.parse(localStorage.getItem('hotel_attractions')) || DEFAULT_ATTRACTIONS;
+    }
+
+    try {
+        const res = await fetch('/api/testimonials');
+        if (res.ok) window.cachedTestimonials = await res.json();
+    } catch(e) {
+        console.warn("Using localStorage testimonials fallback", e);
+        window.cachedTestimonials = JSON.parse(localStorage.getItem('hotel_testimonials')) || DEFAULT_TESTIMONIALS;
+    }
+
+    try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+            const data = await res.json();
+            if (Object.keys(data).length > 0) window.cachedSettings = data;
         }
+    } catch(e) {
+        console.warn("Using localStorage settings fallback", e);
+        window.cachedSettings = JSON.parse(localStorage.getItem('hotel_settings')) || DEFAULT_SETTINGS;
     }
-    if (!localStorage.getItem('hotel_gallery')) {
-        localStorage.setItem('hotel_gallery', JSON.stringify(DEFAULT_GALLERY));
-    }
-    if (!localStorage.getItem('hotel_attractions')) {
-        localStorage.setItem('hotel_attractions', JSON.stringify(DEFAULT_ATTRACTIONS));
-    }
-    if (!localStorage.getItem('hotel_testimonials')) {
-        localStorage.setItem('hotel_testimonials', JSON.stringify(DEFAULT_TESTIMONIALS));
-    }
-    if (!localStorage.getItem('hotel_settings')) {
-        localStorage.setItem('hotel_settings', JSON.stringify(DEFAULT_SETTINGS));
-    }
-    if (!localStorage.getItem('hotel_enquiries')) {
-        localStorage.setItem('hotel_enquiries', JSON.stringify([]));
+
+    try {
+        const res = await fetch('/api/enquiries');
+        if (res.ok) window.cachedEnquiries = await res.json();
+    } catch(e) {
+        console.warn("Using localStorage enquiries fallback", e);
+        window.cachedEnquiries = JSON.parse(localStorage.getItem('hotel_enquiries')) || [];
     }
 }
 
-/* ==========================================
-   DYNAMIC INVENTORY & RESERVATION HELPERS
-   ========================================== */
+function initDatabase() {
+    if (!localStorage.getItem('hotel_rooms')) localStorage.setItem('hotel_rooms', JSON.stringify(DEFAULT_ROOMS));
+    if (!localStorage.getItem('hotel_gallery')) localStorage.setItem('hotel_gallery', JSON.stringify(DEFAULT_GALLERY));
+    if (!localStorage.getItem('hotel_attractions')) localStorage.setItem('hotel_attractions', JSON.stringify(DEFAULT_ATTRACTIONS));
+    if (!localStorage.getItem('hotel_testimonials')) localStorage.setItem('hotel_testimonials', JSON.stringify(DEFAULT_TESTIMONIALS));
+    if (!localStorage.getItem('hotel_settings')) localStorage.setItem('hotel_settings', JSON.stringify(DEFAULT_SETTINGS));
+    if (!localStorage.getItem('hotel_enquiries')) localStorage.setItem('hotel_enquiries', JSON.stringify([]));
+}
+
 function isDateRangeOverlapping(start1, end1, start2, end2) {
     const s1 = new Date(start1);
     const e1 = new Date(end1);
@@ -201,42 +230,44 @@ function isDateRangeOverlapping(start1, end1, start2, end2) {
 }
 
 function getRoomAvailability(roomId, checkin, checkout) {
-    const rooms = JSON.parse(localStorage.getItem('hotel_rooms')) || DEFAULT_ROOMS;
+    const rooms = window.cachedRooms || DEFAULT_ROOMS;
     const room = rooms.find(r => r.id === roomId);
     if (!room) return 0;
     const totalInventory = parseInt(room.inventory) || 5;
 
     if (!checkin || !checkout) return totalInventory;
 
-    const enquiries = JSON.parse(localStorage.getItem('hotel_enquiries')) || [];
-    
-    // Filter active bookings matching room type that overlap dates
+    const enquiries = window.cachedEnquiries || [];
     const activeOverlaps = enquiries.filter(b => {
-        // Only count Confirmed bookings against available inventory
         if (b.status !== 'Confirmed') return false;
-        
-        // Match room category either by exact ID or original name
         const roomTypeMatch = (b.roomType === room.name || b.roomType === room.id || (b.room_type && b.room_type === room.id));
         if (!roomTypeMatch) return false;
-
         return isDateRangeOverlapping(b.checkin, b.checkout, checkin, checkout);
     });
 
     return Math.max(0, totalInventory - activeOverlaps.length);
 }
-
-function autoCheckOutPastBookings() {
+async function autoCheckOutPastBookings() {
     try {
-        const enquiries = JSON.parse(localStorage.getItem('hotel_enquiries')) || [];
+        const enquiries = window.cachedEnquiries || [];
         const today = new Date().toISOString().split('T')[0];
         let modified = false;
 
-        enquiries.forEach(b => {
+        for (const b of enquiries) {
             if ((b.status === 'Confirmed' || b.status === 'Pending') && b.checkout < today) {
                 b.status = 'Completed';
                 modified = true;
+                try {
+                    await fetch('/api/enquiries', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: b.id, status: 'Completed' })
+                    });
+                } catch(e) {
+                    console.error("Auto checkout status save failed", e);
+                }
             }
-        });
+        }
 
         if (modified) {
             localStorage.setItem('hotel_enquiries', JSON.stringify(enquiries));
@@ -250,11 +281,11 @@ function autoCheckOutPastBookings() {
    DYNAMIC PAGE RENDERERS
    ========================================== */
 function renderDynamicContent() {
-    const rooms = JSON.parse(localStorage.getItem('hotel_rooms')) || DEFAULT_ROOMS;
-    const gallery = JSON.parse(localStorage.getItem('hotel_gallery')) || DEFAULT_GALLERY;
-    const attractions = JSON.parse(localStorage.getItem('hotel_attractions')) || DEFAULT_ATTRACTIONS;
-    const testimonials = JSON.parse(localStorage.getItem('hotel_testimonials')) || DEFAULT_TESTIMONIALS;
-    const settings = JSON.parse(localStorage.getItem('hotel_settings')) || DEFAULT_SETTINGS;
+    const rooms = window.cachedRooms || DEFAULT_ROOMS;
+    const gallery = window.cachedGallery || DEFAULT_GALLERY;
+    const attractions = window.cachedAttractions || DEFAULT_ATTRACTIONS;
+    const testimonials = window.cachedTestimonials || DEFAULT_TESTIMONIALS;
+    const settings = window.cachedSettings || DEFAULT_SETTINGS;
 
     // 1. Update Global Header/Footer Info
     updateGlobalContactInfo(settings);
@@ -1098,6 +1129,14 @@ function initForms() {
                 source: 'Online',
                 date: new Date().toLocaleDateString('en-IN') + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             };
+
+            // Post to backend API
+            fetch('/api/enquiries', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newEnquiry)
+            }).catch(err => console.error("Database save failed, using local fallback", err));
+
             enquiries.unshift(newEnquiry); // Add to beginning
             localStorage.setItem('hotel_enquiries', JSON.stringify(enquiries));
 
