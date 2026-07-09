@@ -1393,6 +1393,7 @@
                         <select id="booking-form-roomtype" class="form-control" required>
                             <!-- Javascript populated -->
                         </select>
+                        <div id="booking-form-availability-status" style="font-size: 0.8rem; font-weight: 600; margin-top: 4px;"></div>
                     </div>
                     <div class="form-group">
                         <label for="booking-form-guests">Number of Guests</label>
@@ -2256,6 +2257,76 @@
                     offlineCheckout.min = offlineCheckin.value;
                 });
             }
+
+            function getAdminRoomAvailability(roomId, checkin, checkout) {
+                const rooms = window.adminRooms || [];
+                const room = rooms.find(r => r.id === roomId);
+                if (!room) return 0;
+                const totalInventory = parseInt(room.inventory) || 5;
+
+                if (!checkin || !checkout) return totalInventory;
+
+                const s1 = new Date(checkin);
+                const e1 = new Date(checkout);
+
+                const activeOverlaps = (window.adminEnquiries || []).filter(b => {
+                    if (b.status !== 'Confirmed') return false;
+                    const roomTypeMatch = (b.roomType === room.name || b.roomType === room.id || (b.room_type && b.room_type === room.id));
+                    if (!roomTypeMatch) return false;
+
+                    const s2 = new Date(b.checkin);
+                    const e2 = new Date(b.checkout);
+                    return (s1 < e2) && (s2 < e1);
+                });
+
+                return Math.max(0, totalInventory - activeOverlaps.length);
+            }
+
+            function checkAdminBookingAvailability() {
+                const roomId = document.getElementById('booking-form-roomtype').value;
+                const checkin = document.getElementById('booking-form-checkin').value;
+                const checkout = document.getElementById('booking-form-checkout').value;
+                const statusLabel = document.getElementById('booking-form-availability-status');
+                const submitBtn = document.querySelector('#offline-booking-form button[type="submit"]');
+
+                if (!roomId || !checkin || !checkout) {
+                    if (statusLabel) statusLabel.innerHTML = '';
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.style.opacity = '1';
+                        submitBtn.style.cursor = 'pointer';
+                    }
+                    return;
+                }
+
+                const avail = getAdminRoomAvailability(roomId, checkin, checkout);
+                if (statusLabel) {
+                    if (avail <= 0) {
+                        statusLabel.innerHTML = `<span style="color:#e74c3c;">❌ Fully booked / Sold Out for these dates</span>`;
+                        if (submitBtn) {
+                            submitBtn.disabled = true;
+                            submitBtn.style.opacity = '0.5';
+                            submitBtn.style.cursor = 'not-allowed';
+                        }
+                    } else {
+                        statusLabel.innerHTML = `<span style="color:#2ecc71;">✅ Rooms Available (${avail} left)</span>`;
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.style.opacity = '1';
+                            submitBtn.style.cursor = 'pointer';
+                        }
+                    }
+                }
+            }
+
+            const availabilityTriggers = [
+                document.getElementById('booking-form-roomtype'),
+                document.getElementById('booking-form-checkin'),
+                document.getElementById('booking-form-checkout')
+            ];
+            availabilityTriggers.forEach(el => {
+                if (el) el.addEventListener('change', checkAdminBookingAvailability);
+            });
 
             // Offline booking form submission
             document.getElementById('offline-booking-form').addEventListener('submit', async (e) => {
