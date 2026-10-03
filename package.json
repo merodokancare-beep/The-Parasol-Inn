@@ -2,9 +2,10 @@
   "name": "the-parasol-inn-backend",
   "version": "1.0.0",
   "description": "PostgreSQL API endpoints for The Parasol Inn",
-  "main": "api/db.js",
+  "main": "The-Parasol-Inn/server.js",
   "scripts": {
-    "dev": "vercel dev"
+    "start": "npm --prefix The-Parasol-Inn start",
+    "dev": "npm --prefix The-Parasol-Inn run dev"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.9.4",
