@@ -1,8 +1,28 @@
 import { sql, verifyAdmin } from './_db.js';
 
+async function ensureTeamTable() {
+  if (!sql) return;
+  await sql`
+    CREATE TABLE IF NOT EXISTS team (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      role TEXT NOT NULL,
+      bio TEXT,
+      image TEXT,
+      display_order INTEGER DEFAULT 0
+    )
+  `;
+}
+
 export default async function handler(req, res) {
   if (!sql) {
     return res.status(500).json({ error: 'Database connection offline.' });
+  }
+
+  try {
+    await ensureTeamTable();
+  } catch (tableErr) {
+    console.error('Error ensuring team table:', tableErr);
   }
 
   const { method } = req;

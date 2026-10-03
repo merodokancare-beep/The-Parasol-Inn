@@ -113,30 +113,5 @@ export const DEFAULT_SETTINGS = {
   passcode: "admin123"
 };
 
-export const DEFAULT_TEAM = [
-  {
-    id: "team_1",
-    name: "Pemba Sherpa",
-    role: "Founder & Managing Director",
-    bio: "A mountaineering enthusiast with 25+ years in mountain tourism. Pemba leads the vision for sustainable boutique luxury in Sikkim.",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
-    display_order: 1
-  },
-  {
-    id: "team_2",
-    name: "Mingma Lhamo",
-    role: "General Manager",
-    bio: "Mingma manages guest relationships, daily resort operations, and guides our frontline service team to deliver outstanding reviews.",
-    image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80",
-    display_order: 2
-  },
-  {
-    id: "team_3",
-    name: "Tshering Tamang",
-    role: "Executive Chef",
-    bio: "Master Chef Tshering crafts our local Himalayan delicacies, Momos, and fusion menus using ingredients sourced directly from village farms.",
-    image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
-    display_order: 3
-  }
-];
+export const DEFAULT_TEAM = [];
 

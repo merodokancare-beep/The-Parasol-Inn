@@ -75,17 +75,8 @@ export default async function handler(req, res) {
         address = EXCLUDED.address
     `;
 
-    // Seed Team
-    const teamCount = await sql`SELECT count(*) FROM team`;
-    if (parseInt(teamCount[0].count) === 0) {
-      for (const member of DEFAULT_TEAM) {
-        await sql`
-          INSERT INTO team (id, name, role, bio, image, display_order)
-          VALUES (${member.id}, ${member.name}, ${member.role}, ${member.bio}, ${member.image}, ${member.display_order})
-          ON CONFLICT (id) DO NOTHING
-        `;
-      }
-    }
+    // Remove any legacy dummy team entries if present
+    await sql`DELETE FROM team WHERE id IN ('team_1', 'team_2', 'team_3')`;
 
     return res.status(200).json({ status: "success", message: "Database initialized and seeded successfully." });
 

@@ -2191,6 +2191,11 @@
             if (!grid) return;
             grid.innerHTML = '';
 
+            if (team.length === 0) {
+                grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--admin-text-mute); background: var(--admin-card); border-radius: var(--admin-radius); border: 1px dashed var(--admin-border);">No team members added yet. Click <strong>"+ Add Team Member"</strong> to add your resort executives and managers.</div>`;
+                return;
+            }
+
             team.sort((a, b) => (parseInt(a.display_order) || 99) - (parseInt(b.display_order) || 99));
 
             team.forEach(member => {
