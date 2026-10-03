@@ -43,25 +43,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function syncDataFromServer() {
     try {
-        const [rooms, gallery, attractions, testimonials, settings] = await Promise.all([
+        const [rooms, gallery, attractions, testimonials, settings, team] = await Promise.all([
             fetch('/api/rooms').then(r => r.json()),
             fetch('/api/gallery').then(r => r.json()),
             fetch('/api/attractions').then(r => r.json()),
             fetch('/api/testimonials').then(r => r.json()),
-            fetch('/api/settings').then(r => r.json())
+            fetch('/api/settings').then(r => r.json()),
+            fetch('/api/team').then(r => r.json())
         ]);
         
         localStorage.setItem('hotel_rooms', JSON.stringify(rooms));
         localStorage.setItem('hotel_gallery', JSON.stringify(gallery));
         localStorage.setItem('hotel_attractions', JSON.stringify(attractions));
         localStorage.setItem('hotel_testimonials', JSON.stringify(testimonials));
+        localStorage.setItem('hotel_team', JSON.stringify(team));
         
         // Merge settings to preserve client-only local settings like passcode
         const oldSettings = JSON.parse(localStorage.getItem('hotel_settings')) || {};
         const newSettings = { ...oldSettings, ...settings };
         localStorage.setItem('hotel_settings', JSON.stringify(newSettings));
     } catch (e) {
-        console.error("Error syncing database data from Vercel:", e);
+        console.error("Error syncing database data:", e);
     }
 }
 
@@ -182,11 +184,39 @@ const DEFAULT_SETTINGS = {
     address: "The Parasol Inn, Swastik Gate, Upper Burtuk, Gangtok - 737101, Sikkim",
     passcode: "admin123"
 };
+const DEFAULT_TEAM = [
+    {
+        id: "team_1",
+        name: "Pemba Sherpa",
+        role: "Founder & Managing Director",
+        bio: "A mountaineering enthusiast with 25+ years in mountain tourism. Pemba leads the vision for sustainable boutique luxury in Sikkim.",
+        image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
+        display_order: 1
+    },
+    {
+        id: "team_2",
+        name: "Mingma Lhamo",
+        role: "General Manager",
+        bio: "Mingma manages guest relationships, daily resort operations, and guides our frontline service team to deliver outstanding reviews.",
+        image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80",
+        display_order: 2
+    },
+    {
+        id: "team_3",
+        name: "Tshering Tamang",
+        role: "Executive Chef",
+        bio: "Master Chef Tshering crafts our local Himalayan delicacies, Momos, and fusion menus using ingredients sourced directly from village farms.",
+        image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
+        display_order: 3
+    }
+];
+
 window.cachedRooms = DEFAULT_ROOMS;
 window.cachedGallery = DEFAULT_GALLERY;
 window.cachedAttractions = DEFAULT_ATTRACTIONS;
 window.cachedTestimonials = DEFAULT_TESTIMONIALS;
 window.cachedSettings = DEFAULT_SETTINGS;
+window.cachedTeam = DEFAULT_TEAM;
 window.cachedEnquiries = [];
 
 async function loadCachedDatabase() {
@@ -223,6 +253,14 @@ async function loadCachedDatabase() {
     }
 
     try {
+        const res = await fetch('/api/team');
+        if (res.ok) window.cachedTeam = await res.json();
+    } catch(e) {
+        console.warn("Using localStorage team fallback", e);
+        window.cachedTeam = JSON.parse(localStorage.getItem('hotel_team')) || DEFAULT_TEAM;
+    }
+
+    try {
         const res = await fetch('/api/settings');
         if (res.ok) {
             const data = await res.json();
@@ -247,6 +285,7 @@ function initDatabase() {
     if (!localStorage.getItem('hotel_gallery')) localStorage.setItem('hotel_gallery', JSON.stringify(DEFAULT_GALLERY));
     if (!localStorage.getItem('hotel_attractions')) localStorage.setItem('hotel_attractions', JSON.stringify(DEFAULT_ATTRACTIONS));
     if (!localStorage.getItem('hotel_testimonials')) localStorage.setItem('hotel_testimonials', JSON.stringify(DEFAULT_TESTIMONIALS));
+    if (!localStorage.getItem('hotel_team')) localStorage.setItem('hotel_team', JSON.stringify(DEFAULT_TEAM));
     if (!localStorage.getItem('hotel_settings')) localStorage.setItem('hotel_settings', JSON.stringify(DEFAULT_SETTINGS));
     if (!localStorage.getItem('hotel_enquiries')) localStorage.setItem('hotel_enquiries', JSON.stringify([]));
 }
@@ -521,7 +560,33 @@ function renderDynamicContent() {
         });
     }
 
-    // 8. Inject Admin Link in Footer (Subtle)
+    // 8. Render Resort Management Team (about.html)
+    const teamGrid = document.querySelector('.management-grid');
+    if (teamGrid) {
+        const team = window.cachedTeam || DEFAULT_TEAM;
+        if (team && team.length > 0) {
+            teamGrid.innerHTML = '';
+            const sortedTeam = [...team].sort((a, b) => (parseInt(a.display_order) || 99) - (parseInt(b.display_order) || 99));
+            sortedTeam.forEach(member => {
+                const card = document.createElement('div');
+                card.className = 'member-card';
+                card.innerHTML = `
+                    <div class="member-img">
+                        <img src="${member.image || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80'}"
+                            alt="${member.name}" style="width: 100%; height: 100%; object-fit: cover;">
+                    </div>
+                    <div class="member-info">
+                        <h4>${member.name}</h4>
+                        <span>${member.role}</span>
+                        <p>${member.bio || ''}</p>
+                    </div>
+                `;
+                teamGrid.appendChild(card);
+            });
+        }
+    }
+
+    // 9. Inject Admin Link in Footer (Subtle)
     const footerLinksLists = document.querySelectorAll('.footer-links');
     if (footerLinksLists.length >= 2) {
         const helpInfoCol = footerLinksLists[1];

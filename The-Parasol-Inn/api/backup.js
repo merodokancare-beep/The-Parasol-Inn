@@ -4,7 +4,8 @@ import {
   DEFAULT_GALLERY,
   DEFAULT_ATTRACTIONS,
   DEFAULT_TESTIMONIALS,
-  DEFAULT_SETTINGS
+  DEFAULT_SETTINGS,
+  DEFAULT_TEAM
 } from './_seeds.js';
 
 export default async function handler(req, res) {
@@ -23,13 +24,14 @@ export default async function handler(req, res) {
   // GET (Export backup)
   if (method === 'GET') {
     try {
-      const [rooms, gallery, attractions, testimonials, settings, enquiries] = await Promise.all([
+      const [rooms, gallery, attractions, testimonials, settings, enquiries, team] = await Promise.all([
         sql`SELECT * FROM rooms`,
         sql`SELECT * FROM gallery`,
         sql`SELECT * FROM attractions`,
         sql`SELECT * FROM testimonials`,
         sql`SELECT * FROM settings WHERE id = 'global'`,
-        sql`SELECT * FROM enquiries`
+        sql`SELECT * FROM enquiries`,
+        sql`SELECT * FROM team ORDER BY display_order ASC, name ASC`
       ]);
 
       // Map drive_time to driveTime in attractions for client compatibility
@@ -77,7 +79,8 @@ export default async function handler(req, res) {
         attractions: mappedAttractions,
         testimonials,
         settings: mappedSettings,
-        enquiries: mappedEnquiries
+        enquiries: mappedEnquiries,
+        team
       });
     } catch (error) {
       console.error('Error exporting database backup:', error);
@@ -87,7 +90,7 @@ export default async function handler(req, res) {
 
   // POST (Restore backup)
   if (method === 'POST') {
-    const { rooms, gallery, attractions, testimonials, settings, enquiries } = req.body || {};
+    const { rooms, gallery, attractions, testimonials, settings, enquiries, team } = req.body || {};
 
     try {
       // Ensure tables exist before restoration
@@ -100,7 +103,8 @@ export default async function handler(req, res) {
         sql`DELETE FROM attractions`,
         sql`DELETE FROM testimonials`,
         sql`DELETE FROM settings`,
-        sql`DELETE FROM enquiries`
+        sql`DELETE FROM enquiries`,
+        sql`DELETE FROM team`
       ]);
 
       // 2. Re-insert items sequentially or parallelly
@@ -156,6 +160,15 @@ export default async function handler(req, res) {
         }
       }
 
+      if (Array.isArray(team)) {
+        for (const m of team) {
+          await sql`
+            INSERT INTO team (id, name, role, bio, image, display_order)
+            VALUES (${m.id}, ${m.name}, ${m.role}, ${m.bio || ''}, ${m.image || ''}, ${m.display_order || 0})
+          `;
+        }
+      }
+
       return res.status(200).json({ success: true, message: 'Database restored successfully.' });
     } catch (error) {
       console.error('Error restoring database backup:', error);
@@ -176,7 +189,8 @@ export default async function handler(req, res) {
         sql`DELETE FROM attractions`,
         sql`DELETE FROM testimonials`,
         sql`DELETE FROM settings`,
-        sql`DELETE FROM enquiries`
+        sql`DELETE FROM enquiries`,
+        sql`DELETE FROM team`
       ]);
 
       // 2. Reseed with defaults
@@ -212,6 +226,13 @@ export default async function handler(req, res) {
         INSERT INTO settings (id, phone_front_desk, phone_reservations, email_info, email_booking, whatsapp, address, passcode)
         VALUES ('global', ${DEFAULT_SETTINGS.phoneFrontDesk}, ${DEFAULT_SETTINGS.phoneReservations}, ${DEFAULT_SETTINGS.emailInfo}, ${DEFAULT_SETTINGS.emailBooking}, ${DEFAULT_SETTINGS.whatsapp}, ${DEFAULT_SETTINGS.address}, ${DEFAULT_SETTINGS.passcode})
       `;
+
+      for (const m of DEFAULT_TEAM) {
+        await sql`
+          INSERT INTO team (id, name, role, bio, image, display_order)
+          VALUES (${m.id}, ${m.name}, ${m.role}, ${m.bio}, ${m.image}, ${m.display_order})
+        `;
+      }
 
       return res.status(200).json({ success: true, message: 'Database reset to default settings.' });
     } catch (error) {

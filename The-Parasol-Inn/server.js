@@ -14,6 +14,7 @@ import enquiriesHandler from './api/enquiries.js';
 import authHandler from './api/auth.js';
 import backupHandler from './api/backup.js';
 import dbInitHandler from './api/db-init.js';
+import teamHandler from './api/team.js';
 
 dotenv.config();
 
@@ -43,6 +44,7 @@ app.all('/api/enquiries', (req, res) => enquiriesHandler(req, res));
 app.all('/api/auth', (req, res) => authHandler(req, res));
 app.all('/api/backup', (req, res) => backupHandler(req, res));
 app.all('/api/db-init', (req, res) => dbInitHandler(req, res));
+app.all('/api/team', (req, res) => teamHandler(req, res));
 
 // Serve static assets from current directory (css, js, images, html)
 app.use(express.static(__dirname, { extensions: ['html'] }));

@@ -138,4 +138,16 @@ export async function ensureTablesExist() {
       date TEXT NOT NULL
     )
   `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS team (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      role TEXT NOT NULL,
+      bio TEXT,
+      image TEXT,
+      display_order INTEGER DEFAULT 0
+    )
+  `;
 }
+

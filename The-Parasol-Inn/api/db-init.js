@@ -4,7 +4,8 @@ import {
   DEFAULT_GALLERY,
   DEFAULT_ATTRACTIONS,
   DEFAULT_TESTIMONIALS,
-  DEFAULT_SETTINGS
+  DEFAULT_SETTINGS,
+  DEFAULT_TEAM
 } from './_seeds.js';
 
 export default async function handler(req, res) {
@@ -70,10 +71,21 @@ export default async function handler(req, res) {
         phone_front_desk = EXCLUDED.phone_front_desk,
         phone_reservations = EXCLUDED.phone_reservations,
         email_info = EXCLUDED.email_info,
-        email_booking = EXCLUDED.email_booking,
         whatsapp = EXCLUDED.whatsapp,
         address = EXCLUDED.address
     `;
+
+    // Seed Team
+    const teamCount = await sql`SELECT count(*) FROM team`;
+    if (parseInt(teamCount[0].count) === 0) {
+      for (const member of DEFAULT_TEAM) {
+        await sql`
+          INSERT INTO team (id, name, role, bio, image, display_order)
+          VALUES (${member.id}, ${member.name}, ${member.role}, ${member.bio}, ${member.image}, ${member.display_order})
+          ON CONFLICT (id) DO NOTHING
+        `;
+      }
+    }
 
     return res.status(200).json({ status: "success", message: "Database initialized and seeded successfully." });
 

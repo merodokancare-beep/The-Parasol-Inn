@@ -823,6 +823,12 @@
                         Testimonials
                     </a>
                 </li>
+                <li class="sidebar-menu-item" data-tab="team">
+                    <a href="#">
+                        <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                        Team Members
+                    </a>
+                </li>
                 <li class="sidebar-menu-item" data-tab="settings">
                     <a href="#">
                         <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
@@ -1068,6 +1074,25 @@
                 </div>
 
                 <div class="crud-grid" id="testimonials-crud-grid">
+                    <!-- Rendered dynamically -->
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 PANEL: TEAM MEMBERS
+                 ========================================== -->
+            <div class="tab-panel" id="panel-team">
+                <div class="page-header">
+                    <div>
+                        <h1>Resort Management Team</h1>
+                        <p>Manage executives, roles, biographies, and staff photos shown on the About Us page</p>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-primary" id="btn-add-team">+ Add Team Member</button>
+                    </div>
+                </div>
+
+                <div class="crud-grid" id="team-crud-grid">
                     <!-- Rendered dynamically -->
                 </div>
             </div>
@@ -1355,6 +1380,52 @@
         </div>
     </div>
 
+    <!-- Team Member Modal -->
+    <div class="modal-overlay" id="modal-team">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="team-modal-title">Add Team Member</h3>
+                <button type="button" class="modal-close" onclick="closeModal('modal-team')">&times;</button>
+            </div>
+            <form id="team-form">
+                <input type="hidden" id="team-form-id">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label for="team-form-name">Member Name</label>
+                        <input type="text" id="team-form-name" class="form-control" placeholder="e.g. Pemba Sherpa" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="team-form-role">Designation / Role</label>
+                        <input type="text" id="team-form-role" class="form-control" placeholder="e.g. Founder & Managing Director" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="team-form-image">Profile Photo</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="team-form-image" class="form-control" placeholder="https://images.unsplash.com/... or data:image..." style="flex: 1;" required>
+                        <div style="position: relative; overflow: hidden; display: inline-block;">
+                            <button type="button" class="btn btn-secondary" style="height: 38px; white-space: nowrap; font-size: 0.85rem; padding: 0 12px;">Local Image</button>
+                            <input type="file" id="team-form-image-file" accept="image/*" style="position: absolute; font-size: 100px; right: 0; top: 0; opacity: 0; cursor: pointer;">
+                        </div>
+                    </div>
+                    <span style="font-size: 0.75rem; color: var(--admin-text-mute); margin-top: 4px; display:block;">Enter an image web URL or select a local photo (it will be optimized automatically).</span>
+                </div>
+                <div class="form-group">
+                    <label for="team-form-bio">Bio / Description</label>
+                    <textarea id="team-form-bio" class="form-control" style="height: 100px; resize: vertical;" placeholder="Brief bio, experience, and background..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="team-form-order">Display Order</label>
+                    <input type="number" id="team-form-order" class="form-control" value="1" min="1" max="99" style="max-width: 120px;">
+                </div>
+                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 30px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-team')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Member</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Offline Booking Modal -->
     <div class="modal-overlay" id="modal-booking">
         <div class="modal-card">
@@ -1460,11 +1531,12 @@
             const passcode = sessionStorage.getItem('admin_passcode') || '';
             const headers = { 'Authorization': `Bearer ${passcode}` };
             try {
-                const [rooms, gallery, attractions, testimonials, settings, enquiries] = await Promise.all([
+                const [rooms, gallery, attractions, testimonials, team, settings, enquiries] = await Promise.all([
                     fetch('/api/rooms').then(r => r.json()),
                     fetch('/api/gallery').then(r => r.json()),
                     fetch('/api/attractions').then(r => r.json()),
                     fetch('/api/testimonials').then(r => r.json()),
+                    fetch('/api/team').then(r => r.json()),
                     fetch('/api/settings', { headers }).then(r => r.json()),
                     fetch('/api/enquiries', { headers }).then(r => r.json())
                 ]);
@@ -1473,6 +1545,7 @@
                 localStorage.setItem('hotel_gallery', JSON.stringify(gallery));
                 localStorage.setItem('hotel_attractions', JSON.stringify(attractions));
                 localStorage.setItem('hotel_testimonials', JSON.stringify(testimonials));
+                localStorage.setItem('hotel_team', JSON.stringify(team));
                 localStorage.setItem('hotel_settings', JSON.stringify(settings));
                 localStorage.setItem('hotel_enquiries', JSON.stringify(enquiries));
             } catch (err) {
@@ -1614,6 +1687,7 @@
             let gallery = [];
             let attractions = [];
             let testimonials = [];
+            let team = [];
             let settings = {};
             let enquiries = [];
 
@@ -1633,6 +1707,9 @@
                 const resTest = await fetch('/api/testimonials');
                 if (resTest.ok) testimonials = await resTest.json();
 
+                const resTeam = await fetch('/api/team');
+                if (resTeam.ok) team = await resTeam.json();
+
                 const resSet = await fetch('/api/settings', { headers });
                 if (resSet.ok) settings = await resSet.json();
 
@@ -1644,6 +1721,7 @@
                 gallery = JSON.parse(localStorage.getItem('hotel_gallery')) || [];
                 attractions = JSON.parse(localStorage.getItem('hotel_attractions')) || [];
                 testimonials = JSON.parse(localStorage.getItem('hotel_testimonials')) || [];
+                team = JSON.parse(localStorage.getItem('hotel_team')) || [];
                 settings = JSON.parse(localStorage.getItem('hotel_settings')) || {};
                 enquiries = JSON.parse(localStorage.getItem('hotel_enquiries')) || [];
             }
@@ -1652,6 +1730,7 @@
             window.adminGallery = gallery;
             window.adminAttractions = attractions;
             window.adminTestimonials = testimonials;
+            window.adminTeam = team;
             window.adminSettings = settings;
             window.adminEnquiries = enquiries;
 
@@ -1687,6 +1766,7 @@
             renderGalleryManager(gallery);
             renderAttractionsManager(attractions);
             renderTestimonialsManager(testimonials);
+            renderTeamManager(team);
         }
 
         /* 1. Dashboard Recent Enquiries */
@@ -2105,6 +2185,82 @@
             }
         };
 
+        /* 7. Team Members CRUD Panel rendering */
+        function renderTeamManager(team) {
+            const grid = document.getElementById('team-crud-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            team.sort((a, b) => (parseInt(a.display_order) || 99) - (parseInt(b.display_order) || 99));
+
+            team.forEach(member => {
+                const card = document.createElement('div');
+                card.className = 'crud-card';
+                card.innerHTML = `
+                    <div class="crud-card-img" style="height: 220px;">
+                        <img src="${member.image}" alt="${member.name}" style="object-fit: cover;">
+                        <div class="crud-card-actions">
+                            <button class="action-icon-btn" onclick="editTeam('${member.id}')" title="Edit Member">✏</button>
+                            <button class="action-icon-btn action-icon-btn-danger" onclick="deleteTeam('${member.id}')" title="Delete Member">🗑</button>
+                        </div>
+                    </div>
+                    <div class="crud-card-body">
+                        <div>
+                            <span style="font-size:0.75rem; color:var(--admin-primary); text-transform:uppercase; letter-spacing:0.05em; font-weight:600; display:block; margin-bottom:4px;">${member.role}</span>
+                            <h4 class="crud-card-title">${member.name}</h4>
+                            <p class="crud-card-meta">${member.bio ? (member.bio.length > 120 ? member.bio.substring(0, 117) + '...' : member.bio) : ''}</p>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--admin-border); padding-top:12px; font-size:0.8rem; color:var(--admin-text-mute); margin-top: auto;">
+                            <span><strong>Display Order:</strong> #${member.display_order || 1}</span>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        window.editTeam = function(id) {
+            const team = window.adminTeam || JSON.parse(localStorage.getItem('hotel_team')) || [];
+            const member = team.find(m => m.id === id);
+            if (!member) return;
+
+            document.getElementById('team-modal-title').textContent = "Edit Team Member";
+            document.getElementById('team-form-id').value = member.id;
+            document.getElementById('team-form-name').value = member.name;
+            document.getElementById('team-form-role').value = member.role;
+            document.getElementById('team-form-image').value = member.image;
+            document.getElementById('team-form-bio').value = member.bio || '';
+            document.getElementById('team-form-order').value = member.display_order || 1;
+
+            openModal('modal-team');
+        };
+
+        window.deleteTeam = async function(id) {
+            if (confirm("Are you sure you want to delete this team member?")) {
+                const passcode = sessionStorage.getItem('admin_passcode') || '';
+                try {
+                    const res = await fetch(`/api/team?id=${id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${passcode}`
+                        }
+                    });
+
+                    if (res.ok) {
+                        showToast(`Team member removed.`, 'success');
+                        await syncAllAdminData();
+                        loadAllDatabaseViews();
+                    } else {
+                        const errData = await res.json();
+                        showToast(`Error: ${errData.error || 'Failed to delete team member.'}`, 'danger');
+                    }
+                } catch (err) {
+                    showToast('Connection to database failed.', 'danger');
+                    console.error(err);
+                }
+            }
+        };
+
         /* ==========================================
            CRUD DIALOG SUBMISSIONS & FORM SUBMIT
            ========================================== */
@@ -2178,6 +2334,17 @@
                 openModal('modal-testimonial');
             });
 
+            const btnAddTeam = document.getElementById('btn-add-team');
+            if (btnAddTeam) {
+                btnAddTeam.addEventListener('click', () => {
+                    document.getElementById('team-form').reset();
+                    document.getElementById('team-form-id').value = '';
+                    document.getElementById('team-form-order').value = (window.adminTeam ? window.adminTeam.length + 1 : 1);
+                    document.getElementById('team-modal-title').textContent = "Add Team Member";
+                    openModal('modal-team');
+                });
+            }
+
             const btnAddOfflineBooking = document.getElementById('btn-add-offline-booking');
             if (btnAddOfflineBooking) {
                 btnAddOfflineBooking.addEventListener('click', () => {
@@ -2210,6 +2377,19 @@
                         compressImageFile(file, (dataUrl) => {
                             document.getElementById('gallery-form-image').value = dataUrl;
                             showToast("Gallery photo compressed and loaded successfully.", "info");
+                        });
+                    }
+                });
+            }
+
+            const teamImageFile = document.getElementById('team-form-image-file');
+            if (teamImageFile) {
+                teamImageFile.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        compressImageFile(file, (dataUrl) => {
+                            document.getElementById('team-form-image').value = dataUrl;
+                            showToast("Team photo compressed and loaded successfully.", "info");
                         });
                     }
                 });
@@ -2555,7 +2735,48 @@
                 }
             });
 
-            // 5. General Settings Form Submission
+            // 5. Team Member form submission
+            const teamForm = document.getElementById('team-form');
+            if (teamForm) {
+                teamForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const id = document.getElementById('team-form-id').value || 'team_' + Date.now();
+                    const name = document.getElementById('team-form-name').value;
+                    const role = document.getElementById('team-form-role').value;
+                    const image = document.getElementById('team-form-image').value;
+                    const bio = document.getElementById('team-form-bio').value;
+                    const display_order = parseInt(document.getElementById('team-form-order').value) || 1;
+
+                    const teamData = { id, name, role, image, bio, display_order };
+                    const passcode = sessionStorage.getItem('admin_passcode') || '';
+
+                    try {
+                        const res = await fetch('/api/team', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${passcode}`
+                            },
+                            body: JSON.stringify(teamData)
+                        });
+
+                        if (res.ok) {
+                            closeModal('modal-team');
+                            showToast(`Team member "${name}" saved successfully.`, 'success');
+                            await syncAllAdminData();
+                            loadAllDatabaseViews();
+                        } else {
+                            const errData = await res.json();
+                            showToast(`Error: ${errData.error || 'Failed to save team member.'}`, 'danger');
+                        }
+                    } catch (err) {
+                        showToast('Connection to database failed.', 'danger');
+                        console.error(err);
+                    }
+                });
+            }
+
+            // 6. General Settings Form Submission
             document.getElementById('settings-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
