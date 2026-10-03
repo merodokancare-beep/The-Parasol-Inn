@@ -592,12 +592,20 @@ function updateGlobalContactInfo(settings) {
         addressEl.innerHTML = settings.address.replace(/,/g, ',<br>');
     }
     const phoneEl = document.querySelector('.contact-info-panel .contact-detail-item:nth-child(2) p');
-    if (phoneEl && settings.phoneFrontDesk && settings.phoneReservations) {
-        phoneEl.innerHTML = `Front Desk: ${settings.phoneFrontDesk}<br>Reservations: ${settings.phoneReservations}`;
+    if (phoneEl && settings.phoneFrontDesk) {
+        if (settings.phoneReservations && settings.phoneReservations !== settings.phoneFrontDesk) {
+            phoneEl.innerHTML = `<a href="tel:${settings.phoneFrontDesk.replace(/[^0-9+]/g, '')}" style="color:inherit;text-decoration:none;">${settings.phoneFrontDesk}</a><br><a href="tel:${settings.phoneReservations.replace(/[^0-9+]/g, '')}" style="color:inherit;text-decoration:none;">${settings.phoneReservations}</a>`;
+        } else {
+            phoneEl.innerHTML = `<a href="tel:${settings.phoneFrontDesk.replace(/[^0-9+]/g, '')}" style="color:inherit;text-decoration:none;">${settings.phoneFrontDesk}</a>`;
+        }
     }
     const emailEl = document.querySelector('.contact-info-panel .contact-detail-item:nth-child(3) p');
-    if (emailEl && settings.emailInfo && settings.emailBooking) {
-        emailEl.innerHTML = `${settings.emailInfo}<br>${settings.emailBooking}`;
+    if (emailEl && settings.emailInfo) {
+        if (settings.emailBooking && settings.emailBooking !== settings.emailInfo) {
+            emailEl.innerHTML = `<a href="mailto:${settings.emailInfo}" style="color:inherit;text-decoration:none;">${settings.emailInfo}</a><br><a href="mailto:${settings.emailBooking}" style="color:inherit;text-decoration:none;">${settings.emailBooking}</a>`;
+        } else {
+            emailEl.innerHTML = `<a href="mailto:${settings.emailInfo}" style="color:inherit;text-decoration:none;">${settings.emailInfo}</a>`;
+        }
     }
 }
 
