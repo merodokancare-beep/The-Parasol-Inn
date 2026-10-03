@@ -1,4 +1,5 @@
 import { neon } from '@neondatabase/serverless';
+import postgres from 'postgres';
 import dotenv from 'dotenv';
 
 // Load environment variables for local development
@@ -10,8 +11,18 @@ if (!databaseUrl) {
   console.error("CRITICAL: DATABASE_URL environment variable is missing.");
 }
 
+function initSql(url) {
+  if (!url) return null;
+  // If connection is neon.tech, use neon HTTP client
+  if (url.includes('neon.tech')) {
+    return neon(url);
+  }
+  // Otherwise use native PostgreSQL connection for local or self-hosted PostgreSQL
+  return postgres(url, { max: 10, connect_timeout: 10 });
+}
+
 // Export the SQL query executor
-export const sql = databaseUrl ? neon(databaseUrl) : null;
+export const sql = initSql(databaseUrl);
 
 /**
  * Verify if the request is authenticated as admin
