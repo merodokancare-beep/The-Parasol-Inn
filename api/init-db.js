@@ -105,12 +105,12 @@ const DEFAULT_TESTIMONIALS = [
 ];
 
 const DEFAULT_SETTINGS = {
-    phoneFrontDesk: "+91 3592 202202",
-    phoneReservations: "+91 98765 43210",
-    emailInfo: "info@theparasolinnsikkim.com",
-    emailBooking: "booking@theparasolinnsikkim.com",
-    whatsapp: "+919876543210",
-    address: "The Parasol Inn Sikkim, Near Ridge Park, Gangtok, Sikkim - 737101, India",
+    phoneFrontDesk: "+91 9246244599",
+    phoneReservations: "+91 8348554599",
+    emailInfo: "Passangbhutia298@gmail.com",
+    emailBooking: "Passangbhutia298@gmail.com",
+    whatsapp: "+919246244599",
+    address: "The Parasol Inn, Swastik Gate, Upper Burtuk, Gangtok - 737101, Sikkim",
     passcode: "admin123"
 };
 

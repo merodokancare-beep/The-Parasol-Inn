@@ -62,14 +62,18 @@ export default async function handler(req, res) {
       }
     }
 
-    // Seed Settings
-    const settingsCount = await sql`SELECT count(*) FROM settings`;
-    if (parseInt(settingsCount[0].count) === 0) {
-      await sql`
-        INSERT INTO settings (id, phone_front_desk, phone_reservations, email_info, email_booking, whatsapp, address, passcode)
-        VALUES ('global', ${DEFAULT_SETTINGS.phoneFrontDesk}, ${DEFAULT_SETTINGS.phoneReservations}, ${DEFAULT_SETTINGS.emailInfo}, ${DEFAULT_SETTINGS.emailBooking}, ${DEFAULT_SETTINGS.whatsapp}, ${DEFAULT_SETTINGS.address}, ${DEFAULT_SETTINGS.passcode})
-      `;
-    }
+    // Seed Settings (Insert or update with latest values)
+    await sql`
+      INSERT INTO settings (id, phone_front_desk, phone_reservations, email_info, email_booking, whatsapp, address, passcode)
+      VALUES ('global', ${DEFAULT_SETTINGS.phoneFrontDesk}, ${DEFAULT_SETTINGS.phoneReservations}, ${DEFAULT_SETTINGS.emailInfo}, ${DEFAULT_SETTINGS.emailBooking}, ${DEFAULT_SETTINGS.whatsapp}, ${DEFAULT_SETTINGS.address}, ${DEFAULT_SETTINGS.passcode})
+      ON CONFLICT (id) DO UPDATE SET
+        phone_front_desk = EXCLUDED.phone_front_desk,
+        phone_reservations = EXCLUDED.phone_reservations,
+        email_info = EXCLUDED.email_info,
+        email_booking = EXCLUDED.email_booking,
+        whatsapp = EXCLUDED.whatsapp,
+        address = EXCLUDED.address
+    `;
 
     return res.status(200).json({ status: "success", message: "Database initialized and seeded successfully." });
 
