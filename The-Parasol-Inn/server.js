@@ -36,20 +36,61 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// API Routes (adapts Vercel serverless format for Express)
-app.all('/api/rooms', (req, res) => roomsHandler(req, res));
-app.all('/api/gallery', (req, res) => galleryHandler(req, res));
-app.all('/api/attractions', (req, res) => attractionsHandler(req, res));
-app.all('/api/testimonials', (req, res) => testimonialsHandler(req, res));
-app.all('/api/settings', (req, res) => settingsHandler(req, res));
+// Lightweight In-Memory API Cache (60s TTL for public GET operations)
+const apiCache = new Map();
+const CACHE_TTL_MS = 60 * 1000;
+
+function cachedRoute(handler, routeName) {
+  return async (req, res) => {
+    const isAdminAuth = Boolean(req.headers.authorization || req.query.passcode);
+    if (req.method === 'GET' && !req.query.nocache && !isAdminAuth) {
+      const hit = apiCache.get(routeName);
+      if (hit && (Date.now() - hit.time < CACHE_TTL_MS)) {
+        return res.status(200).json(hit.data);
+      }
+      const origJson = res.json.bind(res);
+      res.json = (data) => {
+        if (res.statusCode === 200 && data && !data.error) {
+          apiCache.set(routeName, { time: Date.now(), data });
+        }
+        return origJson(data);
+      };
+      return handler(req, res);
+    }
+    if (req.method !== 'GET') {
+      apiCache.delete(routeName);
+    }
+    return handler(req, res);
+  };
+}
+
+// API Routes (adapts Vercel serverless format for Express with caching)
+app.all('/api/rooms', cachedRoute((req, res) => roomsHandler(req, res), 'rooms'));
+app.all('/api/gallery', cachedRoute((req, res) => galleryHandler(req, res), 'gallery'));
+app.all('/api/attractions', cachedRoute((req, res) => attractionsHandler(req, res), 'attractions'));
+app.all('/api/testimonials', cachedRoute((req, res) => testimonialsHandler(req, res), 'testimonials'));
+app.all('/api/settings', cachedRoute((req, res) => settingsHandler(req, res), 'settings'));
+app.all('/api/team', cachedRoute((req, res) => teamHandler(req, res), 'team'));
 app.all('/api/enquiries', (req, res) => enquiriesHandler(req, res));
 app.all('/api/auth', (req, res) => authHandler(req, res));
 app.all('/api/backup', (req, res) => backupHandler(req, res));
-app.all('/api/db-init', (req, res) => dbInitHandler(req, res));
-app.all('/api/team', (req, res) => teamHandler(req, res));
+app.all('/api/db-init', (req, res) => {
+  apiCache.clear();
+  return dbInitHandler(req, res);
+});
 
-// Serve static assets from current directory (css, js, images, html)
-app.use(express.static(__dirname, { extensions: ['html'] }));
+// Serve static assets with caching headers (HTML revalidated, static assets cached 1 day)
+app.use(express.static(__dirname, {
+  extensions: ['html'],
+  maxAge: '1d',
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+    } else {
+      res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+    }
+  }
+}));
 
 // Clean URLs fallback (e.g. /rooms -> rooms.html)
 app.get('*', (req, res) => {

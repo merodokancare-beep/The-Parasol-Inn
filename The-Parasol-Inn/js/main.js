@@ -1,50 +1,39 @@
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
     // 1. Initialize Database Schema locally (cached/fallback values)
     initDatabase();
 
-    // Load Vercel backend database to cache
-    await loadCachedDatabase();
+    // 2. Load cached database from localStorage synchronously (0ms)
+    loadCachedDatabase();
 
-    // Render immediately from cache for fast initial paint
+    // 3. Render immediately from cache for 0ms Instant First Paint
     renderDynamicContent();
     autoCheckOutPastBookings();
 
-    // Sync state with Neon PostgreSQL database
-    await syncDataFromServer();
-
-    // Re-render and finalize active components with fresh database values
-    renderDynamicContent();
-    autoCheckOutPastBookings();
-
-    // 2. Initialize Theme Toggle
+    // 4. Initialize all interactive UI widgets without blocking
     initThemeToggle();
-
-    // 3. Initialize Mobile Navigation
     initMobileNav();
-
-    // 4. Initialize Hero Slider (if exists)
     initHeroSlider();
-
-    // 5. Initialize Testimonial Slider (if exists)
     initTestimonialSlider();
-
-    // 6. Initialize Gallery Filters and Lightbox (if exists)
     initGallery();
-
-    // 7. Initialize Tariff Calculator (if exists)
     initTariffCalculator();
-
-    // 8. Initialize Enquiry Form Handlers
     initForms();
-
-    // 9. Initialize Customer Review Submission Modal
     initCustomerReviewModal();
-
-    // 10. Setup active state for current page nav link
     setupActiveNavLink();
+
+    // 5. Non-blocking Background Sync: Fetch fresh database state AFTER page finishes rendering
+    window.addEventListener('load', () => {
+        if ('requestIdleCallback' in window) {
+            window.requestIdleCallback(() => syncDataFromServer(), { timeout: 2000 });
+        } else {
+            setTimeout(syncDataFromServer, 300);
+        }
+    });
 });
 
+let isSyncing = false;
 async function syncDataFromServer() {
+    if (isSyncing) return;
+    isSyncing = true;
     try {
         const [rooms, gallery, attractions, testimonials, settings, team] = await Promise.all([
             fetch('/api/rooms').then(r => r.ok ? r.json() : null).catch(() => null),
@@ -55,21 +44,50 @@ async function syncDataFromServer() {
             fetch('/api/team').then(r => r.ok ? r.json() : null).catch(() => null)
         ]);
         
-        if (Array.isArray(rooms) && rooms.length > 0) localStorage.setItem('hotel_rooms', JSON.stringify(rooms));
-        if (Array.isArray(gallery) && gallery.length > 0) localStorage.setItem('hotel_gallery', JSON.stringify(gallery));
-        if (Array.isArray(attractions) && attractions.length > 0) localStorage.setItem('hotel_attractions', JSON.stringify(attractions));
-        if (Array.isArray(testimonials) && testimonials.length > 0) localStorage.setItem('hotel_testimonials', JSON.stringify(testimonials));
-        if (Array.isArray(team) && team.length > 0) localStorage.setItem('hotel_team', JSON.stringify(team));
+        let changed = false;
+        if (Array.isArray(rooms) && rooms.length > 0) {
+            window.cachedRooms = rooms;
+            localStorage.setItem('hotel_rooms', JSON.stringify(rooms));
+            changed = true;
+        }
+        if (Array.isArray(gallery) && gallery.length > 0) {
+            window.cachedGallery = gallery;
+            localStorage.setItem('hotel_gallery', JSON.stringify(gallery));
+            changed = true;
+        }
+        if (Array.isArray(attractions) && attractions.length > 0) {
+            window.cachedAttractions = attractions;
+            localStorage.setItem('hotel_attractions', JSON.stringify(attractions));
+            changed = true;
+        }
+        if (Array.isArray(testimonials) && testimonials.length > 0) {
+            window.cachedTestimonials = testimonials;
+            localStorage.setItem('hotel_testimonials', JSON.stringify(testimonials));
+            changed = true;
+        }
+        if (Array.isArray(team) && team.length > 0) {
+            window.cachedTeam = team;
+            localStorage.setItem('hotel_team', JSON.stringify(team));
+            changed = true;
+        }
         
         // Merge settings to preserve client-only local settings like passcode
         if (settings && typeof settings === 'object' && !settings.error) {
+            window.cachedSettings = { ...window.cachedSettings, ...settings };
             let oldSettings = {};
             try { oldSettings = JSON.parse(localStorage.getItem('hotel_settings')) || {}; } catch(e) {}
             const newSettings = { ...oldSettings, ...settings };
             localStorage.setItem('hotel_settings', JSON.stringify(newSettings));
+            changed = true;
+        }
+
+        if (changed) {
+            renderDynamicContent();
         }
     } catch (e) {
-        console.error("Error syncing database data:", e);
+        console.warn("Background sync note:", e);
+    } finally {
+        isSyncing = false;
     }
 }
 
@@ -269,131 +287,54 @@ window.cachedSettings = DEFAULT_SETTINGS;
 window.cachedTeam = DEFAULT_TEAM;
 window.cachedEnquiries = [];
 
-async function loadCachedDatabase() {
+function loadCachedDatabase() {
     try {
-        const res = await fetch('/api/rooms');
-        if (res.ok) {
-            const data = await res.json();
-            if (Array.isArray(data)) window.cachedRooms = data;
-        }
-    } catch(e) {
-        console.warn("Using localStorage rooms fallback", e);
-    }
-    if (!Array.isArray(window.cachedRooms)) {
-        try {
-            const local = JSON.parse(localStorage.getItem('hotel_rooms'));
-            window.cachedRooms = Array.isArray(local) ? local : DEFAULT_ROOMS;
-        } catch (e) {
-            window.cachedRooms = DEFAULT_ROOMS;
-        }
+        const local = JSON.parse(localStorage.getItem('hotel_rooms'));
+        window.cachedRooms = (Array.isArray(local) && local.length > 0) ? local : DEFAULT_ROOMS;
+    } catch (e) {
+        window.cachedRooms = DEFAULT_ROOMS;
     }
 
     try {
-        const res = await fetch('/api/gallery');
-        if (res.ok) {
-            const data = await res.json();
-            if (Array.isArray(data)) window.cachedGallery = data;
-        }
-    } catch(e) {
-        console.warn("Using localStorage gallery fallback", e);
-    }
-    if (!Array.isArray(window.cachedGallery)) {
-        try {
-            const local = JSON.parse(localStorage.getItem('hotel_gallery'));
-            window.cachedGallery = Array.isArray(local) ? local : DEFAULT_GALLERY;
-        } catch (e) {
-            window.cachedGallery = DEFAULT_GALLERY;
-        }
+        const local = JSON.parse(localStorage.getItem('hotel_gallery'));
+        window.cachedGallery = (Array.isArray(local) && local.length > 0) ? local : DEFAULT_GALLERY;
+    } catch (e) {
+        window.cachedGallery = DEFAULT_GALLERY;
     }
 
     try {
-        const res = await fetch('/api/attractions');
-        if (res.ok) {
-            const data = await res.json();
-            if (Array.isArray(data)) window.cachedAttractions = data;
-        }
-    } catch(e) {
-        console.warn("Using localStorage attractions fallback", e);
-    }
-    if (!Array.isArray(window.cachedAttractions)) {
-        try {
-            const local = JSON.parse(localStorage.getItem('hotel_attractions'));
-            window.cachedAttractions = Array.isArray(local) ? local : DEFAULT_ATTRACTIONS;
-        } catch (e) {
-            window.cachedAttractions = DEFAULT_ATTRACTIONS;
-        }
+        const local = JSON.parse(localStorage.getItem('hotel_attractions'));
+        window.cachedAttractions = (Array.isArray(local) && local.length > 0) ? local : DEFAULT_ATTRACTIONS;
+    } catch (e) {
+        window.cachedAttractions = DEFAULT_ATTRACTIONS;
     }
 
     try {
-        const res = await fetch('/api/testimonials');
-        if (res.ok) {
-            const data = await res.json();
-            if (Array.isArray(data)) window.cachedTestimonials = data;
-        }
-    } catch(e) {
-        console.warn("Using localStorage testimonials fallback", e);
-    }
-    if (!Array.isArray(window.cachedTestimonials)) {
-        try {
-            const local = JSON.parse(localStorage.getItem('hotel_testimonials'));
-            window.cachedTestimonials = Array.isArray(local) ? local : DEFAULT_TESTIMONIALS;
-        } catch (e) {
-            window.cachedTestimonials = DEFAULT_TESTIMONIALS;
-        }
+        const local = JSON.parse(localStorage.getItem('hotel_testimonials'));
+        window.cachedTestimonials = (Array.isArray(local) && local.length > 0) ? local : DEFAULT_TESTIMONIALS;
+    } catch (e) {
+        window.cachedTestimonials = DEFAULT_TESTIMONIALS;
     }
 
     try {
-        const res = await fetch('/api/team');
-        if (res.ok) {
-            const data = await res.json();
-            if (Array.isArray(data)) window.cachedTeam = data;
-        }
-    } catch(e) {
-        console.warn("Using localStorage team fallback", e);
-    }
-    if (!Array.isArray(window.cachedTeam)) {
-        try {
-            const local = JSON.parse(localStorage.getItem('hotel_team'));
-            window.cachedTeam = Array.isArray(local) ? local : DEFAULT_TEAM;
-        } catch (e) {
-            window.cachedTeam = DEFAULT_TEAM;
-        }
+        const local = JSON.parse(localStorage.getItem('hotel_team'));
+        window.cachedTeam = (Array.isArray(local) && local.length > 0) ? local : DEFAULT_TEAM;
+    } catch (e) {
+        window.cachedTeam = DEFAULT_TEAM;
     }
 
     try {
-        const res = await fetch('/api/settings');
-        if (res.ok) {
-            const data = await res.json();
-            if (data && typeof data === 'object' && !data.error) window.cachedSettings = data;
-        }
-    } catch(e) {
-        console.warn("Using localStorage settings fallback", e);
-    }
-    if (!window.cachedSettings || typeof window.cachedSettings !== 'object' || window.cachedSettings.error) {
-        try {
-            const local = JSON.parse(localStorage.getItem('hotel_settings'));
-            window.cachedSettings = (local && typeof local === 'object' && !local.error) ? local : DEFAULT_SETTINGS;
-        } catch (e) {
-            window.cachedSettings = DEFAULT_SETTINGS;
-        }
+        const local = JSON.parse(localStorage.getItem('hotel_settings'));
+        window.cachedSettings = (local && typeof local === 'object' && !local.error) ? local : DEFAULT_SETTINGS;
+    } catch (e) {
+        window.cachedSettings = DEFAULT_SETTINGS;
     }
 
     try {
-        const res = await fetch('/api/enquiries');
-        if (res.ok) {
-            const data = await res.json();
-            if (Array.isArray(data)) window.cachedEnquiries = data;
-        }
-    } catch(e) {
-        console.warn("Using localStorage enquiries fallback", e);
-    }
-    if (!Array.isArray(window.cachedEnquiries)) {
-        try {
-            const local = JSON.parse(localStorage.getItem('hotel_enquiries'));
-            window.cachedEnquiries = Array.isArray(local) ? local : [];
-        } catch (e) {
-            window.cachedEnquiries = [];
-        }
+        const local = JSON.parse(localStorage.getItem('hotel_enquiries'));
+        window.cachedEnquiries = Array.isArray(local) ? local : [];
+    } catch (e) {
+        window.cachedEnquiries = [];
     }
 }
 
@@ -468,7 +409,7 @@ function getRoomAvailability(roomId, checkin, checkout) {
 
     return Math.max(0, totalInventory - activeOverlaps.length);
 }
-async function autoCheckOutPastBookings() {
+function autoCheckOutPastBookings() {
     try {
         const enquiries = window.cachedEnquiries || [];
         const today = new Date().toISOString().split('T')[0];
@@ -478,15 +419,6 @@ async function autoCheckOutPastBookings() {
             if ((b.status === 'Confirmed' || b.status === 'Pending') && b.checkout < today) {
                 b.status = 'Completed';
                 modified = true;
-                try {
-                    await fetch('/api/enquiries', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id: b.id, status: 'Completed' })
-                    });
-                } catch(e) {
-                    console.error("Auto checkout status save failed", e);
-                }
             }
         }
 
@@ -494,7 +426,7 @@ async function autoCheckOutPastBookings() {
             localStorage.setItem('hotel_enquiries', JSON.stringify(enquiries));
         }
     } catch (e) {
-        console.error("Auto checkout failed", e);
+        // Safe fail
     }
 }
 
