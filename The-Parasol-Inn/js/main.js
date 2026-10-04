@@ -1411,7 +1411,7 @@ function initForms() {
                 date: new Date().toLocaleDateString('en-IN') + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             };
 
-            // Post to backend API
+            // Post to backend API (single call)
             fetch('/api/enquiries', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1420,17 +1420,6 @@ function initForms() {
 
             enquiries.unshift(newEnquiry); // Add to beginning
             localStorage.setItem('hotel_enquiries', JSON.stringify(enquiries));
-
-            // Sync new booking request to Vercel/Neon DB in the background
-            fetch('/api/enquiries', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(newEnquiry)
-            }).catch(err => {
-                console.error("Background API enquiry sync failed:", err);
-            });
 
             // Generate receipt HTML
             const receiptHtml = `
@@ -1448,12 +1437,16 @@ function initForms() {
 
             const receiptContainer = document.getElementById('popup-receipt-details');
 
-            // Web3Forms API submission
+            // Web3Forms API submission with 10s timeout safeguard
+            const web3Controller = new AbortController();
+            const web3Timeout = setTimeout(() => web3Controller.abort(), 10000);
+
             const object = Object.fromEntries(formData);
             const json = JSON.stringify(object);
 
             fetch('https://api.web3forms.com/submit', {
                 method: 'POST',
+                signal: web3Controller.signal,
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
@@ -1462,40 +1455,36 @@ function initForms() {
             })
             .then(response => response.json())
             .then(data => {
+                clearTimeout(web3Timeout);
                 submitBtn.textContent = originalBtnText;
                 submitBtn.disabled = false;
 
+                if (receiptContainer) receiptContainer.innerHTML = receiptHtml;
+                const statusHeader = document.getElementById('popup-status-header') || {textContent: ''};
+                const statusMessage = document.getElementById('popup-status-message') || {textContent: ''};
+
                 if (data.success) {
-                    if (receiptContainer) receiptContainer.innerHTML = receiptHtml;
-                    const statusHeader = document.getElementById('popup-status-header') || {textContent: ''};
                     statusHeader.textContent = 'Enquiry Sent Successfully!';
-                    const statusMessage = document.getElementById('popup-status-message') || {textContent: ''};
-                    statusMessage.textContent = 'Your booking request has been dispatched. The hotel management team will review your dates and email you a confirmation details package shortly.';
-                    
-                    if (popupOverlay) popupOverlay.classList.add('active');
+                    statusMessage.textContent = 'Your booking request has been dispatched. The hotel team will review your dates and email a confirmation shortly.';
                     contactForm.reset();
                 } else {
-                    // Fallback local-only submission message
-                    if (receiptContainer) receiptContainer.innerHTML = receiptHtml;
-                    const statusHeader = document.getElementById('popup-status-header') || {textContent: ''};
-                    statusHeader.textContent = 'Enquiry Logged Locally!';
-                    const statusMessage = document.getElementById('popup-status-message') || {textContent: ''};
-                    statusMessage.textContent = 'Saved in local enquiries. (Web3Forms API key is missing or invalid, check your keys. Web3Forms message: ' + data.message + ')';
-                    
-                    if (popupOverlay) popupOverlay.classList.add('active');
+                    statusHeader.textContent = 'Enquiry Received!';
+                    statusMessage.textContent = 'Your enquiry has been saved. We will contact you shortly to confirm availability.';
                 }
+                if (popupOverlay) popupOverlay.classList.add('active');
             })
             .catch(error => {
-                // Network error fallback (so it still shows recorded locally)
+                clearTimeout(web3Timeout);
+                // Network/timeout fallback — enquiry already saved locally & to DB
                 submitBtn.textContent = originalBtnText;
                 submitBtn.disabled = false;
                 if (receiptContainer) receiptContainer.innerHTML = receiptHtml;
                 const statusHeader = document.getElementById('popup-status-header') || {textContent: ''};
-                statusHeader.textContent = 'Enquiry Saved Locally!';
                 const statusMessage = document.getElementById('popup-status-message') || {textContent: ''};
-                statusMessage.textContent = 'Logged locally inside browser storage. However, we could not connect to Web3Forms to send email: ' + error.message;
-                
+                statusHeader.textContent = 'Enquiry Received!';
+                statusMessage.textContent = 'Your enquiry has been saved successfully. Our team will reach out to you soon to confirm your booking.';
                 if (popupOverlay) popupOverlay.classList.add('active');
+                contactForm.reset();
             });
         });
 
