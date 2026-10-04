@@ -997,7 +997,10 @@
                 <div class="card">
                     <div class="card-header">
                         <h3>Booking & Enquiry Logs</h3>
-                        <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-all-enquiries">Clear All Logs</button>
+                        <div style="display: flex; gap: 8px;">
+                            <button type="button" class="btn btn-secondary btn-sm" id="btn-refresh-enquiries" style="display:inline-flex; align-items:center; gap:4px;">🔄 Refresh Logs</button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-all-enquiries">Clear All Logs</button>
+                        </div>
                     </div>
                     <div class="table-responsive">
                         <table id="table-all-enquiries">
@@ -1814,17 +1817,17 @@
         });
 
         async function syncAllAdminData() {
-            const passcode = sessionStorage.getItem('admin_passcode') || '';
+            const passcode = sessionStorage.getItem('admin_passcode') || localStorage.getItem('admin_passcode') || 'admin123';
             const headers = { 'Authorization': `Bearer ${passcode}` };
             try {
                 const [rooms, gallery, attractions, testimonials, team, settings, enquiries] = await Promise.all([
                     fetch('/api/rooms').then(r => r.ok ? r.json() : null).catch(() => null),
                     fetch('/api/gallery').then(r => r.ok ? r.json() : null).catch(() => null),
                     fetch('/api/attractions').then(r => r.ok ? r.json() : null).catch(() => null),
-                    fetch('/api/testimonials?all=true', { headers }).then(r => r.ok ? r.json() : null).catch(() => null),
+                    fetch(`/api/testimonials?all=true&passcode=${encodeURIComponent(passcode)}`, { headers }).then(r => r.ok ? r.json() : null).catch(() => null),
                     fetch('/api/team').then(r => r.ok ? r.json() : null).catch(() => null),
-                    fetch('/api/settings', { headers }).then(r => r.ok ? r.json() : null).catch(() => null),
-                    fetch('/api/enquiries', { headers }).then(r => r.ok ? r.json() : null).catch(() => null)
+                    fetch(`/api/settings?passcode=${encodeURIComponent(passcode)}`, { headers }).then(r => r.ok ? r.json() : null).catch(() => null),
+                    fetch(`/api/enquiries?passcode=${encodeURIComponent(passcode)}`, { headers }).then(r => r.ok ? r.json() : null).catch(() => null)
                 ]);
                 
                 if (Array.isArray(rooms)) localStorage.setItem('hotel_rooms', JSON.stringify(rooms));
@@ -1843,7 +1846,9 @@
                     localStorage.setItem('hotel_settings', JSON.stringify(merged));
                     window.adminSettings = merged;
                 }
-                if (Array.isArray(enquiries)) localStorage.setItem('hotel_enquiries', JSON.stringify(enquiries));
+                if (Array.isArray(enquiries) && enquiries.length > 0) {
+                    localStorage.setItem('hotel_enquiries', JSON.stringify(enquiries));
+                }
             } catch (err) {
                 console.error("Failed to sync admin data from server:", err);
             }
@@ -1875,6 +1880,7 @@
                     if (res.ok) {
                         sessionStorage.setItem('admin_logged_in', 'true');
                         sessionStorage.setItem('admin_passcode', passcode);
+                        localStorage.setItem('admin_passcode', passcode);
                         showToast('Welcome back, Admin!', 'success');
                         checkLoginState();
                         await syncAllAdminData();
@@ -1886,6 +1892,7 @@
                         if (passcode === expectedPasscode) {
                             sessionStorage.setItem('admin_logged_in', 'true');
                             sessionStorage.setItem('admin_passcode', passcode);
+                            localStorage.setItem('admin_passcode', passcode);
                             showToast('Admin Portal (Offline Mode Active)', 'success');
                             checkLoginState();
                             await syncAllAdminData();
@@ -1901,6 +1908,7 @@
                     if (passcode === expectedPasscode) {
                         sessionStorage.setItem('admin_logged_in', 'true');
                         sessionStorage.setItem('admin_passcode', passcode);
+                        localStorage.setItem('admin_passcode', passcode);
                         showToast('Admin Portal (Offline Mode Active)', 'success');
                         checkLoginState();
                         await syncAllAdminData();
@@ -1917,6 +1925,7 @@
             logoutBtn.addEventListener('click', () => {
                 sessionStorage.removeItem('admin_logged_in');
                 sessionStorage.removeItem('admin_passcode');
+                localStorage.removeItem('admin_passcode');
                 showToast('Logged out successfully.', 'success');
                 checkLoginState();
             });
@@ -1939,6 +1948,10 @@
 
                     panels.forEach(p => p.classList.remove('active'));
                     document.getElementById(`panel-${targetTab}`).classList.add('active');
+
+                    if (targetTab === 'enquiries' && typeof window.refreshEnquiriesFromAPI === 'function') {
+                        window.refreshEnquiriesFromAPI();
+                    }
                 });
             });
 
@@ -1999,6 +2012,50 @@
         }
 
         /* ==========================================
+           PREVIEW & DATA REFRESH HELPERS
+           ========================================== */
+        function updateAboutImgPreview(num, url) {
+            const box = document.getElementById(`about-img${num}-preview`);
+            if (!box) return;
+            if (url && (url.startsWith('http') || url.startsWith('data:image'))) {
+                box.style.display = 'block';
+                const img = box.querySelector('img');
+                if (img) img.src = url;
+            } else {
+                box.style.display = 'none';
+            }
+        }
+        window.updateAboutImgPreview = updateAboutImgPreview;
+
+        window.refreshEnquiriesFromAPI = async function(showFeedback = false) {
+            const passcode = sessionStorage.getItem('admin_passcode') || localStorage.getItem('admin_passcode') || 'admin123';
+            const headers = { 'Authorization': `Bearer ${passcode}` };
+            try {
+                const res = await fetch(`/api/enquiries?passcode=${encodeURIComponent(passcode)}`, { headers });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (Array.isArray(data)) {
+                        window.adminEnquiries = data;
+                        localStorage.setItem('hotel_enquiries', JSON.stringify(data));
+                        renderAllEnquiriesList(data);
+                        renderOverviewEnquiries(data);
+                        const pendingEl = document.getElementById('stat-pending');
+                        if (pendingEl) pendingEl.textContent = data.filter(e => (e.status || 'Pending') === 'Pending').length;
+                        if (showFeedback) showToast(`Refreshed ${data.length} enquiry log(s).`, 'success');
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.warn("API enquiries refresh failed", err);
+            }
+            const localEnqs = JSON.parse(localStorage.getItem('hotel_enquiries')) || [];
+            window.adminEnquiries = localEnqs;
+            renderAllEnquiriesList(localEnqs);
+            renderOverviewEnquiries(localEnqs);
+            if (showFeedback) showToast(`Displaying ${localEnqs.length} offline enquiry log(s).`, 'info');
+        };
+
+        /* ==========================================
            DATABASE LOADING & RENDERING (CRUD VIEWS)
            ========================================== */
         async function loadAllDatabaseViews() {
@@ -2010,8 +2067,8 @@
             let settings = {};
             let enquiries = [];
 
-            const passcode = sessionStorage.getItem('admin_passcode') || '';
-            const headers = passcode ? { 'Authorization': `Bearer ${passcode}` } : {};
+            const passcode = sessionStorage.getItem('admin_passcode') || localStorage.getItem('admin_passcode') || 'admin123';
+            const headers = { 'Authorization': `Bearer ${passcode}` };
 
             try {
                 const resRooms = await fetch('/api/rooms');
@@ -2023,17 +2080,23 @@
                 const resAtt = await fetch('/api/attractions');
                 if (resAtt.ok) attractions = await resAtt.json();
 
-                const resTest = await fetch('/api/testimonials?all=true', { headers });
+                const resTest = await fetch(`/api/testimonials?all=true&passcode=${encodeURIComponent(passcode)}`, { headers });
                 if (resTest.ok) testimonials = await resTest.json();
 
                 const resTeam = await fetch('/api/team');
                 if (resTeam.ok) team = await resTeam.json();
 
-                const resSet = await fetch('/api/settings', { headers });
+                const resSet = await fetch(`/api/settings?passcode=${encodeURIComponent(passcode)}`, { headers });
                 if (resSet.ok) settings = await resSet.json();
 
-                const resEnq = await fetch('/api/enquiries', { headers });
-                if (resEnq.ok) enquiries = await resEnq.json();
+                const resEnq = await fetch(`/api/enquiries?passcode=${encodeURIComponent(passcode)}`, { headers });
+                if (resEnq.ok) {
+                    const fetchedEnqs = await resEnq.json();
+                    if (Array.isArray(fetchedEnqs) && fetchedEnqs.length > 0) {
+                        enquiries = fetchedEnqs;
+                        localStorage.setItem('hotel_enquiries', JSON.stringify(enquiries));
+                    }
+                }
             } catch(e) {
                 console.warn("API loading failed, using localStorage fallback", e);
                 rooms = JSON.parse(localStorage.getItem('hotel_rooms')) || [];
@@ -2042,6 +2105,9 @@
                 testimonials = JSON.parse(localStorage.getItem('hotel_testimonials')) || [];
                 team = JSON.parse(localStorage.getItem('hotel_team')) || [];
                 settings = JSON.parse(localStorage.getItem('hotel_settings')) || {};
+            }
+
+            if (!Array.isArray(enquiries) || enquiries.length === 0) {
                 enquiries = JSON.parse(localStorage.getItem('hotel_enquiries')) || [];
             }
 
@@ -2140,7 +2206,7 @@
                 if (document.getElementById('about-set-hero-subtitle')) document.getElementById('about-set-hero-subtitle').value = settings.aboutHeroSubtitle || 'The Parasol Inn Sikkim';
                 if (document.getElementById('about-set-hero-img')) {
                     document.getElementById('about-set-hero-img').value = heroImgVal;
-                    updateAboutImgPreview('hero', heroImgVal);
+                    if (typeof updateAboutImgPreview === 'function') updateAboutImgPreview('hero', heroImgVal);
                 }
 
                 document.getElementById('about-set-badge').value = settings.aboutBadge || 'Crafting hospitality since 2012';
@@ -2152,8 +2218,10 @@
                 const img2Val = settings.aboutImg2 || "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=600&q=80";
                 document.getElementById('about-set-img1').value = img1Val;
                 document.getElementById('about-set-img2').value = img2Val;
-                updateAboutImgPreview(1, img1Val);
-                updateAboutImgPreview(2, img2Val);
+                if (typeof updateAboutImgPreview === 'function') {
+                    updateAboutImgPreview(1, img1Val);
+                    updateAboutImgPreview(2, img2Val);
+                }
                 document.getElementById('about-set-vision').value = settings.aboutVision || "To establish The Parasol Inn Sikkim as the premier luxury eco-hotel in the Eastern Himalayas, setting benchmarks for sustainable boutique tourism, high-end comfort, and authentic cultural hospitality.";
                 document.getElementById('about-set-mission').value = settings.aboutMission || "To provide exceptional, immersive mountain experiences for our guests while preserving Sikkim's pristine environment and supporting local communities through fair-wage employment and heritage conservation projects.";
                 document.getElementById('about-set-timeline-sub').value = settings.aboutTimelineSubtitle || 'Our Milestones';
@@ -2190,7 +2258,7 @@
             const tbody = document.querySelector('#table-recent-enquiries tbody');
             tbody.innerHTML = '';
             
-            if (enquiries.length === 0) {
+            if (!Array.isArray(enquiries) || enquiries.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--admin-text-mute);">No enquiries logged yet.</td></tr>`;
                 return;
             }
@@ -2199,14 +2267,15 @@
             enquiries.slice(0, 5).forEach(enq => {
                 const tr = document.createElement('tr');
                 const sourceClass = (enq.source || 'Online') === 'Online' ? 'success' : 'warning';
+                const statusStr = enq.status || 'Pending';
                 tr.innerHTML = `
-                    <td>${enq.date}</td>
-                    <td><strong>${enq.name}</strong><br><span style="font-size:0.75rem; color:var(--admin-text-mute);">${enq.phone}</span></td>
-                    <td>${enq.roomType}</td>
-                    <td><span style="font-size:0.85rem;">${enq.checkin} to ${enq.checkout}</span></td>
-                    <td><strong>₹${enq.cost.toLocaleString('en-IN')}</strong></td>
+                    <td>${enq.date || '—'}</td>
+                    <td><strong>${enq.name || 'Guest'}</strong><br><span style="font-size:0.75rem; color:var(--admin-text-mute);">${enq.phone || ''}</span></td>
+                    <td>${enq.roomType || 'Standard'}</td>
+                    <td><span style="font-size:0.85rem;">${enq.checkin || ''} to ${enq.checkout || ''}</span></td>
+                    <td><strong>₹${(parseInt(enq.cost) || 0).toLocaleString('en-IN')}</strong></td>
                     <td><span class="badge badge-${sourceClass}">${enq.source || 'Online'}</span></td>
-                    <td><span class="badge badge-${enq.status.toLowerCase()}">${enq.status}</span></td>
+                    <td><span class="badge badge-${statusStr.toLowerCase()}">${statusStr}</span></td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -2217,22 +2286,23 @@
             const tbody = document.querySelector('#table-all-enquiries tbody');
             tbody.innerHTML = '';
             
-            if (enquiries.length === 0) {
+            if (!Array.isArray(enquiries) || enquiries.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--admin-text-mute);">No booking requests found.</td></tr>`;
                 return;
             }
 
             enquiries.forEach((enq, index) => {
                 const tr = document.createElement('tr');
+                const statusStr = enq.status || 'Pending';
                 
                 // Set badge status option selection with guest checkout option
                 let actionButtonsHTML = '';
-                if (enq.status === 'Pending') {
+                if (statusStr === 'Pending') {
                     actionButtonsHTML = `
                         <button class="btn btn-secondary btn-sm" onclick="changeEnquiryStatus('${enq.id}', 'Confirmed')" title="Confirm">✔</button>
                         <button class="btn btn-secondary btn-sm" onclick="changeEnquiryStatus('${enq.id}', 'Cancelled')" title="Cancel">✘</button>
                     `;
-                } else if (enq.status === 'Confirmed') {
+                } else if (statusStr === 'Confirmed') {
                     actionButtonsHTML = `
                         <button class="btn btn-secondary btn-sm" onclick="changeEnquiryStatus('${enq.id}', 'Checked-Out')" title="Check Out Guest" style="font-size:0.7rem; padding:2px 6px; white-space:nowrap;">Check-Out 🚪</button>
                     `;
@@ -2240,7 +2310,7 @@
 
                 const statusSelectHTML = `
                     <div style="display:flex; flex-direction:column; gap:4px; min-width:120px;">
-                        <span class="badge badge-${enq.status.toLowerCase().replace(/[^a-z]+/g, '-')}" style="text-align:center; margin-bottom:4px;">${enq.status}</span>
+                        <span class="badge badge-${statusStr.toLowerCase().replace(/[^a-z]+/g, '-')}" style="text-align:center; margin-bottom:4px;">${statusStr}</span>
                         <div style="display:flex; gap:4px; align-items:center;">
                             ${actionButtonsHTML}
                             <button class="btn btn-danger btn-sm" onclick="deleteEnquiry('${enq.id}')" title="Delete" style="margin-left: auto;">🗑</button>
@@ -2250,18 +2320,18 @@
 
                 const sourceClass = (enq.source || 'Online') === 'Online' ? 'success' : 'warning';
                 tr.innerHTML = `
-                    <td><span style="font-size:0.75rem; color:var(--admin-text-mute);">${enq.date}</span></td>
+                    <td><span style="font-size:0.75rem; color:var(--admin-text-mute);">${enq.date || '—'}</span></td>
                     <td>
-                        <strong>${enq.name}</strong><br>
-                        <a href="mailto:${enq.email}" style="font-size:0.8rem; color:var(--admin-primary);">${enq.email}</a><br>
-                        <span style="font-size:0.8rem; color:var(--admin-text-mute);">${enq.phone}</span>
+                        <strong>${enq.name || 'Guest'}</strong><br>
+                        <a href="mailto:${enq.email || ''}" style="font-size:0.8rem; color:var(--admin-primary);">${enq.email || ''}</a><br>
+                        <span style="font-size:0.8rem; color:var(--admin-text-mute);">${enq.phone || ''}</span>
                     </td>
-                    <td>${enq.roomType}</td>
+                    <td>${enq.roomType || 'Standard'}</td>
                     <td>
-                        <span style="font-size:0.85rem; font-weight:600;">${enq.checkin} to ${enq.checkout}</span><br>
-                        <span style="font-size:0.8rem; color:var(--admin-text-mute);">${enq.guests} Guest(s)</span>
+                        <span style="font-size:0.85rem; font-weight:600;">${enq.checkin || ''} to ${enq.checkout || ''}</span><br>
+                        <span style="font-size:0.8rem; color:var(--admin-text-mute);">${enq.guests || 1} Guest(s)</span>
                     </td>
-                    <td><strong style="color:var(--admin-primary)">₹${enq.cost.toLocaleString('en-IN')}</strong></td>
+                    <td><strong style="color:var(--admin-primary)">₹${(parseInt(enq.cost) || 0).toLocaleString('en-IN')}</strong></td>
                     <td><span class="badge badge-${sourceClass}">${enq.source || 'Online'}</span></td>
                     <td style="max-width:200px; font-size:0.85rem; color:var(--admin-text-mute);">${enq.message || '—'}</td>
                     <td>${statusSelectHTML}</td>
@@ -2271,23 +2341,25 @@
         }
 
         window.changeEnquiryStatus = async function(id, newStatus) {
-            const passcode = sessionStorage.getItem('admin_passcode') || '';
+            const passcode = sessionStorage.getItem('admin_passcode') || localStorage.getItem('admin_passcode') || 'admin123';
             try {
-                const res = await fetch('/api/enquiries', {
+                const res = await fetch(`/api/enquiries?passcode=${encodeURIComponent(passcode)}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${passcode}`
                     },
-                    body: JSON.stringify({ id, status: newStatus })
+                    body: JSON.stringify({ id, status: newStatus, passcode })
                 });
 
                 if (res.ok) {
                     showToast(`Enquiry status changed to ${newStatus}.`, 'success');
                     await syncAllAdminData();
-                    loadAllDatabaseViews();
+                    if (typeof window.refreshEnquiriesFromAPI === 'function') {
+                        await window.refreshEnquiriesFromAPI();
+                    }
                 } else {
-                    const errData = await res.json();
+                    const errData = await res.json().catch(() => ({}));
                     showToast(`Error: ${errData.error || 'Failed to update status.'}`, 'danger');
                 }
             } catch (err) {
@@ -2299,9 +2371,9 @@
 
         window.deleteEnquiry = async function(id) {
             if (confirm("Are you sure you want to delete this enquiry request record? This cannot be undone.")) {
-                const passcode = sessionStorage.getItem('admin_passcode') || '';
+                const passcode = sessionStorage.getItem('admin_passcode') || localStorage.getItem('admin_passcode') || 'admin123';
                 try {
-                    const res = await fetch(`/api/enquiries?id=${id}`, {
+                    const res = await fetch(`/api/enquiries?id=${id}&passcode=${encodeURIComponent(passcode)}`, {
                         method: 'DELETE',
                         headers: {
                             'Authorization': `Bearer ${passcode}`
@@ -2311,15 +2383,18 @@
                     if (res.ok) {
                         showToast(`Enquiry record deleted.`, 'success');
                         await syncAllAdminData();
-                        loadAllDatabaseViews();
+                        if (typeof window.refreshEnquiriesFromAPI === 'function') {
+                            await window.refreshEnquiriesFromAPI();
+                        }
                     } else {
-                        const errData = await res.json();
+                        const errData = await res.json().catch(() => ({}));
                         showToast(`Error: ${errData.error || 'Failed to delete record.'}`, 'danger');
                     }
                 } catch (err) {
                     showToast('Connection to database failed.', 'danger');
                     console.error(err);
                 }
+                loadAllDatabaseViews();
             }
         };
 
@@ -2799,17 +2874,6 @@
         };
 
         /* 8. About Us Content & Timeline Helpers */
-        function updateAboutImgPreview(num, url) {
-            const box = document.getElementById(`about-img${num}-preview`);
-            if (!box) return;
-            if (url && (url.startsWith('http') || url.startsWith('data:image'))) {
-                box.style.display = 'block';
-                const img = box.querySelector('img');
-                if (img) img.src = url;
-            } else {
-                box.style.display = 'none';
-            }
-        }
 
         function renderAdminTimeline(timeline) {
             const container = document.getElementById('about-milestones-container');
@@ -3753,12 +3817,21 @@
                 }
             });
 
-            // 7. Clear Enquiries Logs
+            // 7. Refresh & Clear Enquiries Logs
+            const btnRefreshEnq = document.getElementById('btn-refresh-enquiries');
+            if (btnRefreshEnq) {
+                btnRefreshEnq.addEventListener('click', async () => {
+                    if (typeof window.refreshEnquiriesFromAPI === 'function') {
+                        await window.refreshEnquiriesFromAPI(true);
+                    }
+                });
+            }
+
             document.getElementById('btn-clear-all-enquiries').addEventListener('click', async () => {
                 if (confirm("Are you sure you want to clear all reservation enquiries? This will delete all entries in the inbox log!")) {
-                    const passcode = sessionStorage.getItem('admin_passcode') || '';
+                    const passcode = sessionStorage.getItem('admin_passcode') || localStorage.getItem('admin_passcode') || 'admin123';
                     try {
-                        const res = await fetch('/api/enquiries?clear=true', {
+                        const res = await fetch(`/api/enquiries?clear=true&passcode=${encodeURIComponent(passcode)}`, {
                             method: 'DELETE',
                             headers: {
                                 'Authorization': `Bearer ${passcode}`
@@ -3767,10 +3840,13 @@
 
                         if (res.ok) {
                             showToast("Enquiry inbox cleared.", "success");
+                            localStorage.setItem('hotel_enquiries', JSON.stringify([]));
                             await syncAllAdminData();
-                            loadAllDatabaseViews();
+                            if (typeof window.refreshEnquiriesFromAPI === 'function') {
+                                await window.refreshEnquiriesFromAPI();
+                            }
                         } else {
-                            const errData = await res.json();
+                            const errData = await res.json().catch(() => ({}));
                             showToast(`Error: ${errData.error || 'Failed to clear enquiries.'}`, 'danger');
                         }
                     } catch (err) {

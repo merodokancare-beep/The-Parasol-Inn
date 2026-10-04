@@ -71,7 +71,7 @@ export default async function handler(req, res) {
       }
       const sanitized = all
         .filter(e => e.status === 'Confirmed')
-        .map(e => ({ checkin: e.checkin, checkout: e.checkout, roomType: e.roomType, room_type: e.room_type, status: e.status }));
+        .map(e => ({ checkin: e.checkin, checkout: e.checkout, roomType: e.roomType, room_type: e.room_type, status: e.status, cost: 0 }));
       return res.status(200).json(sanitized);
     }
 
@@ -154,7 +154,7 @@ export default async function handler(req, res) {
       const isAuthorized = await verifyAdmin(req);
       
       // Sort enquiries by id descending so newest are on top (since id is enq_timestamp)
-      const enquiries = await sql`SELECT * FROM enquiries ORDER BY date DESC, id DESC`;
+      const enquiries = await sql`SELECT * FROM enquiries ORDER BY id DESC`;
       
       if (isAuthorized) {
         // Map database schema to frontend properties
@@ -165,13 +165,13 @@ export default async function handler(req, res) {
           phone: e.phone,
           checkin: e.checkin,
           checkout: e.checkout,
-          guests: e.guests,
+          guests: parseInt(e.guests) || 1,
           roomType: e.room_type_name,
           room_type: e.room_type_id,
-          message: e.message,
-          cost: e.cost,
-          status: e.status,
-          source: e.source,
+          message: e.message || '',
+          cost: parseInt(e.cost) || 0,
+          status: e.status || 'Pending',
+          source: e.source || 'Online',
           date: e.date
         }));
         return res.status(200).json(mapped);
@@ -184,7 +184,8 @@ export default async function handler(req, res) {
             checkout: e.checkout,
             roomType: e.room_type_name,
             room_type: e.room_type_id,
-            status: e.status
+            status: e.status,
+            cost: 0
           }));
         return res.status(200).json(sanitized);
       }

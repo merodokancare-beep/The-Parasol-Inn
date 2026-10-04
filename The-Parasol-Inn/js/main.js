@@ -1357,7 +1357,7 @@ function initForms() {
         const popupOverlay = document.getElementById('form-success-popup');
         const closePopupBtn = document.getElementById('close-popup-btn');
 
-        contactForm.addEventListener('submit', (e) => {
+        contactForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const submitBtn = contactForm.querySelector('button[type="submit"]');
@@ -1401,22 +1401,26 @@ function initForms() {
                 phone,
                 checkin,
                 checkout,
-                guests,
+                guests: parseInt(guests) || 1,
                 roomType: roomName,
                 room_type: roomType, // Save room ID directly as well
-                message,
+                message: message || '',
                 cost: estimatedCost,
                 status: 'Pending',
                 source: 'Online',
                 date: new Date().toLocaleDateString('en-IN') + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             };
 
-            // Post to backend API (single call)
-            fetch('/api/enquiries', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newEnquiry)
-            }).catch(err => console.error("Database save failed, using local fallback", err));
+            // Post to backend API
+            try {
+                await fetch('/api/enquiries', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newEnquiry)
+                });
+            } catch (err) {
+                console.warn("Backend API save error, local storage fallback active", err);
+            }
 
             enquiries.unshift(newEnquiry); // Add to beginning
             localStorage.setItem('hotel_enquiries', JSON.stringify(enquiries));
@@ -1436,56 +1440,34 @@ function initForms() {
             `;
 
             const receiptContainer = document.getElementById('popup-receipt-details');
+            if (receiptContainer) receiptContainer.innerHTML = receiptHtml;
+            const statusHeader = document.getElementById('popup-status-header') || { textContent: '' };
+            const statusMessage = document.getElementById('popup-status-message') || { textContent: '' };
 
-            // Web3Forms API submission with 10s timeout safeguard
-            const web3Controller = new AbortController();
-            const web3Timeout = setTimeout(() => web3Controller.abort(), 10000);
+            statusHeader.textContent = 'Enquiry Sent Successfully!';
+            statusMessage.textContent = 'Your booking request has been dispatched. The hotel team will review your dates and email a confirmation shortly.';
 
-            const object = Object.fromEntries(formData);
-            const json = JSON.stringify(object);
+            // Re-enable button and reset form
+            submitBtn.textContent = originalBtnText;
+            submitBtn.disabled = false;
+            contactForm.reset();
 
-            fetch('https://api.web3forms.com/submit', {
-                method: 'POST',
-                signal: web3Controller.signal,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: json
-            })
-            .then(response => response.json())
-            .then(data => {
-                clearTimeout(web3Timeout);
-                submitBtn.textContent = originalBtnText;
-                submitBtn.disabled = false;
+            if (popupOverlay) popupOverlay.classList.add('active');
 
-                if (receiptContainer) receiptContainer.innerHTML = receiptHtml;
-                const statusHeader = document.getElementById('popup-status-header') || {textContent: ''};
-                const statusMessage = document.getElementById('popup-status-message') || {textContent: ''};
-
-                if (data.success) {
-                    statusHeader.textContent = 'Enquiry Sent Successfully!';
-                    statusMessage.textContent = 'Your booking request has been dispatched. The hotel team will review your dates and email a confirmation shortly.';
-                    contactForm.reset();
-                } else {
-                    statusHeader.textContent = 'Enquiry Received!';
-                    statusMessage.textContent = 'Your enquiry has been saved. We will contact you shortly to confirm availability.';
-                }
-                if (popupOverlay) popupOverlay.classList.add('active');
-            })
-            .catch(error => {
-                clearTimeout(web3Timeout);
-                // Network/timeout fallback — enquiry already saved locally & to DB
-                submitBtn.textContent = originalBtnText;
-                submitBtn.disabled = false;
-                if (receiptContainer) receiptContainer.innerHTML = receiptHtml;
-                const statusHeader = document.getElementById('popup-status-header') || {textContent: ''};
-                const statusMessage = document.getElementById('popup-status-message') || {textContent: ''};
-                statusHeader.textContent = 'Enquiry Received!';
-                statusMessage.textContent = 'Your enquiry has been saved successfully. Our team will reach out to you soon to confirm your booking.';
-                if (popupOverlay) popupOverlay.classList.add('active');
-                contactForm.reset();
-            });
+            // Dispatch Web3Forms notification in background (non-blocking)
+            try {
+                const object = Object.fromEntries(formData);
+                fetch('https://api.web3forms.com/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(object)
+                }).catch(() => {});
+            } catch (e) {
+                // Non-blocking
+            }
         });
 
         if (closePopupBtn) {

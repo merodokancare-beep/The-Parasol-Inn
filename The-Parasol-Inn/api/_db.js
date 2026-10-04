@@ -30,15 +30,35 @@ export const sql = initSql(databaseUrl);
  * @returns {Promise<boolean>} - True if authenticated, false otherwise
  */
 export async function verifyAdmin(req) {
-  const authHeader = req.headers['authorization'] || req.headers['Authorization'];
-  if (!authHeader) return false;
+  let enteredPasscode = null;
+  const authHeader = req.headers?.['authorization'] || req.headers?.['Authorization'];
+  if (authHeader) {
+    const match = authHeader.match(/^Bearer\s+(.+)$/i);
+    if (match) enteredPasscode = match[1];
+  }
+  if (!enteredPasscode && req.query?.passcode) {
+    enteredPasscode = req.query.passcode;
+  }
+  if (!enteredPasscode && req.body?.passcode) {
+    enteredPasscode = req.body.passcode;
+  }
 
-  const match = authHeader.match(/^Bearer\s+(.+)$/i);
-  if (!match) return false;
-
-  const enteredPasscode = match[1];
+  if (!enteredPasscode) return false;
 
   if (!sql) {
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      const { fileURLToPath } = await import('url');
+      const dirname = path.dirname(fileURLToPath(import.meta.url));
+      const localFile = path.join(dirname, '_local_settings.json');
+      if (fs.existsSync(localFile)) {
+        const raw = JSON.parse(fs.readFileSync(localFile, 'utf8'));
+        if (raw.passcode) return enteredPasscode === raw.passcode;
+      }
+    } catch (e) {
+      // Fallback
+    }
     return enteredPasscode === 'admin123';
   }
 
