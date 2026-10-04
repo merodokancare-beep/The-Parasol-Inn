@@ -50,6 +50,33 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed.' });
   }
 
+  // Database is connected
+  if (method === 'GET') {
+    try {
+      const rows = await sql`SELECT * FROM attractions`;
+      if (!rows || rows.length === 0) {
+        return res.status(200).json(DEFAULT_ATTRACTIONS);
+      }
+      const mapped = rows.map(a => ({
+        id: a.id,
+        name: a.name,
+        description: a.description || '',
+        distance: a.distance || '',
+        driveTime: a.drive_time || a.driveTime || '',
+        image: a.image || ''
+      }));
+      return res.status(200).json(mapped);
+    } catch (error) {
+      console.error('Error fetching attractions:', error);
+      return res.status(200).json(DEFAULT_ATTRACTIONS);
+    }
+  }
+
+  const isAuthorized = await verifyAdmin(req);
+  if (!isAuthorized) {
+    return res.status(401).json({ error: 'Unauthorized admin access.' });
+  }
+
   if (method === 'POST') {
     const { id, name, description, distance, driveTime, image } = req.body || {};
     if (!id || !name || !image) {
@@ -89,5 +116,5 @@ export default async function handler(req, res) {
     }
   }
 
-  return res.status(455).json({ error: 'Method Not Allowed.' });
+  return res.status(405).json({ error: 'Method Not Allowed.' });
 }

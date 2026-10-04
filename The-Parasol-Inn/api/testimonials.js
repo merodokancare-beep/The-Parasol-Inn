@@ -103,15 +103,26 @@ export default async function handler(req, res) {
       }
 
       // Live public website: return only approved reviews
-      const approvedReviews = await sql`
-        SELECT * FROM testimonials 
-        WHERE status = 'approved' OR status IS NULL
-        ORDER BY id DESC
-      `;
-      return res.status(200).json(approvedReviews);
+      try {
+        const approvedReviews = await sql`
+          SELECT * FROM testimonials 
+          WHERE status = 'approved' OR status IS NULL
+          ORDER BY id DESC
+        `;
+        if (approvedReviews && approvedReviews.length > 0) {
+          return res.status(200).json(approvedReviews);
+        }
+      } catch (subErr) {
+        // If status column is missing, query without status filter
+        try {
+          const all = await sql`SELECT * FROM testimonials ORDER BY id DESC`;
+          if (all && all.length > 0) return res.status(200).json(all);
+        } catch (e) {}
+      }
+      return res.status(200).json(DEFAULT_TESTIMONIALS);
     } catch (error) {
       console.error('Error fetching testimonials:', error);
-      return res.status(500).json({ error: error.message });
+      return res.status(200).json(DEFAULT_TESTIMONIALS);
     }
   }
 

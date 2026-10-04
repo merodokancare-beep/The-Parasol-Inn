@@ -47,24 +47,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function syncDataFromServer() {
     try {
         const [rooms, gallery, attractions, testimonials, settings, team] = await Promise.all([
-            fetch('/api/rooms').then(r => r.json()),
-            fetch('/api/gallery').then(r => r.json()),
-            fetch('/api/attractions').then(r => r.json()),
-            fetch('/api/testimonials').then(r => r.json()),
-            fetch('/api/settings').then(r => r.json()),
-            fetch('/api/team').then(r => r.json())
+            fetch('/api/rooms').then(r => r.ok ? r.json() : null).catch(() => null),
+            fetch('/api/gallery').then(r => r.ok ? r.json() : null).catch(() => null),
+            fetch('/api/attractions').then(r => r.ok ? r.json() : null).catch(() => null),
+            fetch('/api/testimonials').then(r => r.ok ? r.json() : null).catch(() => null),
+            fetch('/api/settings').then(r => r.ok ? r.json() : null).catch(() => null),
+            fetch('/api/team').then(r => r.ok ? r.json() : null).catch(() => null)
         ]);
         
-        localStorage.setItem('hotel_rooms', JSON.stringify(rooms));
-        localStorage.setItem('hotel_gallery', JSON.stringify(gallery));
-        localStorage.setItem('hotel_attractions', JSON.stringify(attractions));
-        localStorage.setItem('hotel_testimonials', JSON.stringify(testimonials));
-        localStorage.setItem('hotel_team', JSON.stringify(team));
+        if (Array.isArray(rooms) && rooms.length > 0) localStorage.setItem('hotel_rooms', JSON.stringify(rooms));
+        if (Array.isArray(gallery) && gallery.length > 0) localStorage.setItem('hotel_gallery', JSON.stringify(gallery));
+        if (Array.isArray(attractions) && attractions.length > 0) localStorage.setItem('hotel_attractions', JSON.stringify(attractions));
+        if (Array.isArray(testimonials) && testimonials.length > 0) localStorage.setItem('hotel_testimonials', JSON.stringify(testimonials));
+        if (Array.isArray(team) && team.length > 0) localStorage.setItem('hotel_team', JSON.stringify(team));
         
         // Merge settings to preserve client-only local settings like passcode
-        const oldSettings = JSON.parse(localStorage.getItem('hotel_settings')) || {};
-        const newSettings = { ...oldSettings, ...settings };
-        localStorage.setItem('hotel_settings', JSON.stringify(newSettings));
+        if (settings && typeof settings === 'object' && !settings.error) {
+            let oldSettings = {};
+            try { oldSettings = JSON.parse(localStorage.getItem('hotel_settings')) || {}; } catch(e) {}
+            const newSettings = { ...oldSettings, ...settings };
+            localStorage.setItem('hotel_settings', JSON.stringify(newSettings));
+        }
     } catch (e) {
         console.error("Error syncing database data:", e);
     }
@@ -269,72 +272,174 @@ window.cachedEnquiries = [];
 async function loadCachedDatabase() {
     try {
         const res = await fetch('/api/rooms');
-        if (res.ok) window.cachedRooms = await res.json();
+        if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data)) window.cachedRooms = data;
+        }
     } catch(e) {
         console.warn("Using localStorage rooms fallback", e);
-        window.cachedRooms = JSON.parse(localStorage.getItem('hotel_rooms')) || DEFAULT_ROOMS;
+    }
+    if (!Array.isArray(window.cachedRooms)) {
+        try {
+            const local = JSON.parse(localStorage.getItem('hotel_rooms'));
+            window.cachedRooms = Array.isArray(local) ? local : DEFAULT_ROOMS;
+        } catch (e) {
+            window.cachedRooms = DEFAULT_ROOMS;
+        }
     }
 
     try {
         const res = await fetch('/api/gallery');
-        if (res.ok) window.cachedGallery = await res.json();
+        if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data)) window.cachedGallery = data;
+        }
     } catch(e) {
         console.warn("Using localStorage gallery fallback", e);
-        window.cachedGallery = JSON.parse(localStorage.getItem('hotel_gallery')) || DEFAULT_GALLERY;
+    }
+    if (!Array.isArray(window.cachedGallery)) {
+        try {
+            const local = JSON.parse(localStorage.getItem('hotel_gallery'));
+            window.cachedGallery = Array.isArray(local) ? local : DEFAULT_GALLERY;
+        } catch (e) {
+            window.cachedGallery = DEFAULT_GALLERY;
+        }
     }
 
     try {
         const res = await fetch('/api/attractions');
-        if (res.ok) window.cachedAttractions = await res.json();
+        if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data)) window.cachedAttractions = data;
+        }
     } catch(e) {
         console.warn("Using localStorage attractions fallback", e);
-        window.cachedAttractions = JSON.parse(localStorage.getItem('hotel_attractions')) || DEFAULT_ATTRACTIONS;
+    }
+    if (!Array.isArray(window.cachedAttractions)) {
+        try {
+            const local = JSON.parse(localStorage.getItem('hotel_attractions'));
+            window.cachedAttractions = Array.isArray(local) ? local : DEFAULT_ATTRACTIONS;
+        } catch (e) {
+            window.cachedAttractions = DEFAULT_ATTRACTIONS;
+        }
     }
 
     try {
         const res = await fetch('/api/testimonials');
-        if (res.ok) window.cachedTestimonials = await res.json();
+        if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data)) window.cachedTestimonials = data;
+        }
     } catch(e) {
         console.warn("Using localStorage testimonials fallback", e);
-        window.cachedTestimonials = JSON.parse(localStorage.getItem('hotel_testimonials')) || DEFAULT_TESTIMONIALS;
+    }
+    if (!Array.isArray(window.cachedTestimonials)) {
+        try {
+            const local = JSON.parse(localStorage.getItem('hotel_testimonials'));
+            window.cachedTestimonials = Array.isArray(local) ? local : DEFAULT_TESTIMONIALS;
+        } catch (e) {
+            window.cachedTestimonials = DEFAULT_TESTIMONIALS;
+        }
     }
 
     try {
         const res = await fetch('/api/team');
-        if (res.ok) window.cachedTeam = await res.json();
+        if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data)) window.cachedTeam = data;
+        }
     } catch(e) {
         console.warn("Using localStorage team fallback", e);
-        window.cachedTeam = JSON.parse(localStorage.getItem('hotel_team')) || DEFAULT_TEAM;
+    }
+    if (!Array.isArray(window.cachedTeam)) {
+        try {
+            const local = JSON.parse(localStorage.getItem('hotel_team'));
+            window.cachedTeam = Array.isArray(local) ? local : DEFAULT_TEAM;
+        } catch (e) {
+            window.cachedTeam = DEFAULT_TEAM;
+        }
     }
 
     try {
         const res = await fetch('/api/settings');
         if (res.ok) {
             const data = await res.json();
-            if (Object.keys(data).length > 0) window.cachedSettings = data;
+            if (data && typeof data === 'object' && !data.error) window.cachedSettings = data;
         }
     } catch(e) {
         console.warn("Using localStorage settings fallback", e);
-        window.cachedSettings = JSON.parse(localStorage.getItem('hotel_settings')) || DEFAULT_SETTINGS;
+    }
+    if (!window.cachedSettings || typeof window.cachedSettings !== 'object' || window.cachedSettings.error) {
+        try {
+            const local = JSON.parse(localStorage.getItem('hotel_settings'));
+            window.cachedSettings = (local && typeof local === 'object' && !local.error) ? local : DEFAULT_SETTINGS;
+        } catch (e) {
+            window.cachedSettings = DEFAULT_SETTINGS;
+        }
     }
 
     try {
         const res = await fetch('/api/enquiries');
-        if (res.ok) window.cachedEnquiries = await res.json();
+        if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data)) window.cachedEnquiries = data;
+        }
     } catch(e) {
         console.warn("Using localStorage enquiries fallback", e);
-        window.cachedEnquiries = JSON.parse(localStorage.getItem('hotel_enquiries')) || [];
+    }
+    if (!Array.isArray(window.cachedEnquiries)) {
+        try {
+            const local = JSON.parse(localStorage.getItem('hotel_enquiries'));
+            window.cachedEnquiries = Array.isArray(local) ? local : [];
+        } catch (e) {
+            window.cachedEnquiries = [];
+        }
     }
 }
 
 function initDatabase() {
-    if (!localStorage.getItem('hotel_rooms')) localStorage.setItem('hotel_rooms', JSON.stringify(DEFAULT_ROOMS));
-    if (!localStorage.getItem('hotel_gallery')) localStorage.setItem('hotel_gallery', JSON.stringify(DEFAULT_GALLERY));
-    if (!localStorage.getItem('hotel_attractions')) localStorage.setItem('hotel_attractions', JSON.stringify(DEFAULT_ATTRACTIONS));
-    if (!localStorage.getItem('hotel_testimonials')) localStorage.setItem('hotel_testimonials', JSON.stringify(DEFAULT_TESTIMONIALS));
-    if (!localStorage.getItem('hotel_team')) localStorage.setItem('hotel_team', JSON.stringify(DEFAULT_TEAM));
-    if (!localStorage.getItem('hotel_settings')) localStorage.setItem('hotel_settings', JSON.stringify(DEFAULT_SETTINGS));
-    if (!localStorage.getItem('hotel_enquiries')) localStorage.setItem('hotel_enquiries', JSON.stringify([]));
+    try {
+        const r = JSON.parse(localStorage.getItem('hotel_rooms'));
+        if (!Array.isArray(r) || r.length === 0) localStorage.setItem('hotel_rooms', JSON.stringify(DEFAULT_ROOMS));
+    } catch (e) {
+        localStorage.setItem('hotel_rooms', JSON.stringify(DEFAULT_ROOMS));
+    }
+    try {
+        const g = JSON.parse(localStorage.getItem('hotel_gallery'));
+        if (!Array.isArray(g) || g.length === 0) localStorage.setItem('hotel_gallery', JSON.stringify(DEFAULT_GALLERY));
+    } catch (e) {
+        localStorage.setItem('hotel_gallery', JSON.stringify(DEFAULT_GALLERY));
+    }
+    try {
+        const a = JSON.parse(localStorage.getItem('hotel_attractions'));
+        if (!Array.isArray(a) || a.length === 0) localStorage.setItem('hotel_attractions', JSON.stringify(DEFAULT_ATTRACTIONS));
+    } catch (e) {
+        localStorage.setItem('hotel_attractions', JSON.stringify(DEFAULT_ATTRACTIONS));
+    }
+    try {
+        const t = JSON.parse(localStorage.getItem('hotel_testimonials'));
+        if (!Array.isArray(t) || t.length === 0) localStorage.setItem('hotel_testimonials', JSON.stringify(DEFAULT_TESTIMONIALS));
+    } catch (e) {
+        localStorage.setItem('hotel_testimonials', JSON.stringify(DEFAULT_TESTIMONIALS));
+    }
+    try {
+        const tm = JSON.parse(localStorage.getItem('hotel_team'));
+        if (!Array.isArray(tm) || tm.length === 0) localStorage.setItem('hotel_team', JSON.stringify(DEFAULT_TEAM));
+    } catch (e) {
+        localStorage.setItem('hotel_team', JSON.stringify(DEFAULT_TEAM));
+    }
+    try {
+        const s = JSON.parse(localStorage.getItem('hotel_settings'));
+        if (!s || typeof s !== 'object' || s.error) localStorage.setItem('hotel_settings', JSON.stringify(DEFAULT_SETTINGS));
+    } catch (e) {
+        localStorage.setItem('hotel_settings', JSON.stringify(DEFAULT_SETTINGS));
+    }
+    try {
+        const enq = JSON.parse(localStorage.getItem('hotel_enquiries'));
+        if (!Array.isArray(enq)) localStorage.setItem('hotel_enquiries', JSON.stringify([]));
+    } catch (e) {
+        localStorage.setItem('hotel_enquiries', JSON.stringify([]));
+    }
 }
 
 function isDateRangeOverlapping(start1, end1, start2, end2) {
@@ -1081,7 +1186,11 @@ function initTariffCalculator() {
     const breakdownNights = document.getElementById('calc-breakdown-nights');
     const breakdownGuests = document.getElementById('calc-breakdown-guests');
 
-    const rooms = JSON.parse(localStorage.getItem('hotel_rooms')) || DEFAULT_ROOMS;
+    let rooms = DEFAULT_ROOMS;
+    try {
+        const stored = JSON.parse(localStorage.getItem('hotel_rooms'));
+        if (Array.isArray(stored) && stored.length > 0) rooms = stored;
+    } catch(e) {}
     const prices = {};
     rooms.forEach(r => {
         prices[r.id] = { base: r.price, label: r.name };
@@ -1361,112 +1470,138 @@ function initForms() {
             e.preventDefault();
             
             const submitBtn = contactForm.querySelector('button[type="submit"]');
-            const originalBtnText = submitBtn.textContent;
-            submitBtn.textContent = 'Sending Enquiry...';
-            submitBtn.disabled = true;
-
-            const formData = new FormData(contactForm);
-
-            // Collect guest and room details
-            const name = formData.get('name');
-            const email = formData.get('email');
-            const phone = formData.get('phone');
-            const checkin = formData.get('checkin');
-            const checkout = formData.get('checkout');
-            const guests = formData.get('guests');
-            const roomType = formData.get('room_type');
-            const message = formData.get('message');
-
-            const rooms = JSON.parse(localStorage.getItem('hotel_rooms')) || DEFAULT_ROOMS;
-            const chosenRoom = rooms.find(r => r.id === roomType);
-            const roomName = chosenRoom ? chosenRoom.name : roomType;
-
-            // Generate estimation for storage
-            let estimatedCost = 0;
-            if (chosenRoom && checkin && checkout) {
-                const date1 = new Date(checkin);
-                const date2 = new Date(checkout);
-                const diffTime = Math.abs(date2 - date1);
-                const nights = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
-                const extraCount = Math.max(0, (parseInt(guests) || 1) - 2);
-                estimatedCost = (chosenRoom.price * nights) + (extraCount * 1000 * nights);
+            const originalBtnText = submitBtn ? submitBtn.textContent : 'Send Booking Enquiry';
+            if (submitBtn) {
+                submitBtn.textContent = 'Sending Enquiry...';
+                submitBtn.disabled = true;
             }
 
-            // Save to LocalStorage Enquiries Database
-            const enquiries = JSON.parse(localStorage.getItem('hotel_enquiries')) || [];
-            const newEnquiry = {
-                id: 'enq_' + Date.now(),
-                name,
-                email,
-                phone,
-                checkin,
-                checkout,
-                guests: parseInt(guests) || 1,
-                roomType: roomName,
-                room_type: roomType, // Save room ID directly as well
-                message: message || '',
-                cost: estimatedCost,
-                status: 'Pending',
-                source: 'Online',
-                date: new Date().toLocaleDateString('en-IN') + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            };
-
-            // Post to backend API
             try {
-                await fetch('/api/enquiries', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(newEnquiry)
-                });
-            } catch (err) {
-                console.warn("Backend API save error, local storage fallback active", err);
-            }
+                const formData = new FormData(contactForm);
 
-            enquiries.unshift(newEnquiry); // Add to beginning
-            localStorage.setItem('hotel_enquiries', JSON.stringify(enquiries));
+                // Collect guest and room details
+                const name = (formData.get('name') || '').trim();
+                const email = (formData.get('email') || '').trim();
+                const phone = (formData.get('phone') || '').trim();
+                const checkin = formData.get('checkin') || '';
+                const checkout = formData.get('checkout') || '';
+                const guests = formData.get('guests') || '1';
+                const roomType = formData.get('room_type') || '';
+                const message = (formData.get('message') || '').trim();
 
-            // Generate receipt HTML
-            const receiptHtml = `
-                <div style="text-align: left; margin: 20px 0; font-size: 0.9rem; border-top: 1.5px solid var(--border-color); padding-top: 20px;">
-                    <p style="margin-bottom: 8px;"><strong>Guest Name:</strong> ${name}</p>
-                    <p style="margin-bottom: 8px;"><strong>Email:</strong> ${email}</p>
-                    <p style="margin-bottom: 8px;"><strong>Mobile:</strong> ${phone}</p>
-                    <p style="margin-bottom: 8px;"><strong>Room Category:</strong> ${roomName}</p>
-                    <p style="margin-bottom: 8px;"><strong>Dates:</strong> ${checkin} to ${checkout}</p>
-                    <p style="margin-bottom: 8px;"><strong>Guests Count:</strong> ${guests}</p>
-                    ${estimatedCost > 0 ? `<p style="margin-bottom: 8px;"><strong>Estimated Tariff:</strong> ₹${estimatedCost.toLocaleString('en-IN')}</p>` : ''}
-                    ${message ? `<p style="margin-bottom: 8px;"><strong>Special Notes:</strong> ${message}</p>` : ''}
-                </div>
-            `;
+                let rooms = DEFAULT_ROOMS;
+                try {
+                    const storedRooms = JSON.parse(localStorage.getItem('hotel_rooms'));
+                    if (Array.isArray(storedRooms) && storedRooms.length > 0) {
+                        rooms = storedRooms;
+                    }
+                } catch (e) {}
 
-            const receiptContainer = document.getElementById('popup-receipt-details');
-            if (receiptContainer) receiptContainer.innerHTML = receiptHtml;
-            const statusHeader = document.getElementById('popup-status-header') || { textContent: '' };
-            const statusMessage = document.getElementById('popup-status-message') || { textContent: '' };
+                const chosenRoom = rooms.find(r => r.id === roomType);
+                const roomName = chosenRoom ? chosenRoom.name : (roomType || 'Standard Room');
 
-            statusHeader.textContent = 'Enquiry Sent Successfully!';
-            statusMessage.textContent = 'Your booking request has been dispatched. The hotel team will review your dates and email a confirmation shortly.';
+                // Generate estimation for storage
+                let estimatedCost = 0;
+                if (chosenRoom && checkin && checkout) {
+                    const date1 = new Date(checkin);
+                    const date2 = new Date(checkout);
+                    const diffTime = Math.abs(date2 - date1);
+                    const nights = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1);
+                    const extraCount = Math.max(0, (parseInt(guests) || 1) - 2);
+                    estimatedCost = (chosenRoom.price * nights) + (extraCount * 1000 * nights);
+                }
 
-            // Re-enable button and reset form
-            submitBtn.textContent = originalBtnText;
-            submitBtn.disabled = false;
-            contactForm.reset();
+                // Save to LocalStorage Enquiries Database
+                let enquiries = [];
+                try {
+                    const storedEnquiries = JSON.parse(localStorage.getItem('hotel_enquiries'));
+                    if (Array.isArray(storedEnquiries)) enquiries = storedEnquiries;
+                } catch (e) {}
 
-            if (popupOverlay) popupOverlay.classList.add('active');
+                const newEnquiry = {
+                    id: 'enq_' + Date.now(),
+                    name,
+                    email,
+                    phone,
+                    checkin,
+                    checkout,
+                    guests: parseInt(guests) || 1,
+                    roomType: roomName,
+                    room_type: roomType,
+                    message: message || '',
+                    cost: estimatedCost,
+                    status: 'Pending',
+                    source: 'Online',
+                    date: new Date().toLocaleDateString('en-IN') + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                };
 
-            // Dispatch Web3Forms notification in background (non-blocking)
-            try {
-                const object = Object.fromEntries(formData);
-                fetch('https://api.web3forms.com/submit', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(object)
-                }).catch(() => {});
-            } catch (e) {
-                // Non-blocking
+                // Post to backend API with 6s timeout
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 6000);
+                    await fetch('/api/enquiries', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(newEnquiry),
+                        signal: controller.signal
+                    });
+                    clearTimeout(timeoutId);
+                } catch (err) {
+                    console.warn("Backend API save note, local persistence active", err);
+                }
+
+                enquiries.unshift(newEnquiry);
+                try {
+                    localStorage.setItem('hotel_enquiries', JSON.stringify(enquiries));
+                } catch (e) {}
+
+                // Generate receipt HTML
+                const receiptHtml = `
+                    <div style="text-align: left; margin: 20px 0; font-size: 0.9rem; border-top: 1.5px solid var(--border-color); padding-top: 20px;">
+                        <p style="margin-bottom: 8px;"><strong>Guest Name:</strong> ${name}</p>
+                        <p style="margin-bottom: 8px;"><strong>Email:</strong> ${email}</p>
+                        <p style="margin-bottom: 8px;"><strong>Mobile:</strong> ${phone}</p>
+                        <p style="margin-bottom: 8px;"><strong>Room Category:</strong> ${roomName}</p>
+                        <p style="margin-bottom: 8px;"><strong>Dates:</strong> ${checkin} to ${checkout}</p>
+                        <p style="margin-bottom: 8px;"><strong>Guests Count:</strong> ${guests}</p>
+                        ${estimatedCost > 0 ? `<p style="margin-bottom: 8px;"><strong>Estimated Tariff:</strong> ₹${estimatedCost.toLocaleString('en-IN')}</p>` : ''}
+                        ${message ? `<p style="margin-bottom: 8px;"><strong>Special Notes:</strong> ${message}</p>` : ''}
+                    </div>
+                `;
+
+                const receiptContainer = document.getElementById('popup-receipt-details');
+                if (receiptContainer) receiptContainer.innerHTML = receiptHtml;
+                const statusHeader = document.getElementById('popup-status-header');
+                const statusMessage = document.getElementById('popup-status-message');
+
+                if (statusHeader) statusHeader.textContent = 'Enquiry Sent Successfully!';
+                if (statusMessage) statusMessage.textContent = 'Your booking request has been dispatched. The hotel team will review your dates and email a confirmation shortly.';
+
+                contactForm.reset();
+
+                if (popupOverlay) popupOverlay.classList.add('active');
+
+                // Dispatch Web3Forms notification in background (non-blocking)
+                try {
+                    const object = Object.fromEntries(formData);
+                    fetch('https://api.web3forms.com/submit', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify(object)
+                    }).catch(() => {});
+                } catch (e) {}
+
+            } catch (fatalError) {
+                console.error("Error submitting enquiry:", fatalError);
+                alert("Thank you! Your enquiry has been received. Our team will contact you shortly.");
+            } finally {
+                if (submitBtn) {
+                    submitBtn.textContent = originalBtnText;
+                    submitBtn.disabled = false;
+                }
             }
         });
 

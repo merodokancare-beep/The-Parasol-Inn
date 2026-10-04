@@ -16,6 +16,8 @@ import backupHandler from './api/backup.js';
 import dbInitHandler from './api/db-init.js';
 import teamHandler from './api/team.js';
 
+import { ensureTablesExist } from './api/_db.js';
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -67,6 +69,7 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
+  ensureTablesExist().catch(err => console.warn('DB initialization check:', err.message));
   console.log(`===============================================`);
   console.log(`  The Parasol Inn Server is Live!              `);
   console.log(`  URL: http://localhost:${PORT}                `);

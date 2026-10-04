@@ -52,6 +52,35 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed.' });
   }
 
+  // Database is connected
+  if (method === 'GET') {
+    try {
+      const rows = await sql`SELECT * FROM rooms ORDER BY price ASC`;
+      if (!rows || rows.length === 0) {
+        return res.status(200).json(DEFAULT_ROOMS);
+      }
+      const mapped = rows.map(r => ({
+        id: r.id,
+        name: r.name,
+        tagline: r.tagline || '',
+        description: r.description || '',
+        price: parseInt(r.price) || 0,
+        image: r.image || '',
+        amenities: Array.isArray(r.amenities) ? r.amenities : (typeof r.amenities === 'string' ? JSON.parse(r.amenities || '[]') : []),
+        inventory: parseInt(r.inventory) || 5
+      }));
+      return res.status(200).json(mapped);
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
+      return res.status(200).json(DEFAULT_ROOMS);
+    }
+  }
+
+  const isAuthorized = await verifyAdmin(req);
+  if (!isAuthorized) {
+    return res.status(401).json({ error: 'Unauthorized admin access.' });
+  }
+
   if (method === 'POST') {
     const { id, name, tagline, description, price, image, amenities, inventory } = req.body || {};
     if (!id || !name || price === undefined) {
@@ -93,5 +122,5 @@ export default async function handler(req, res) {
     }
   }
 
-  return res.status(455).json({ error: 'Method Not Allowed.' });
+  return res.status(405).json({ error: 'Method Not Allowed.' });
 }
