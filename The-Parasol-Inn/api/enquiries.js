@@ -1,11 +1,38 @@
 import { sql, verifyAdmin } from './_db.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-let memoryEnquiries = [];
+// ── File-based persistence (used when DATABASE_URL is not set) ──────────────
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const ENQUIRIES_FILE = path.join(__dirname, '_local_enquiries.json');
+
+function readLocalEnquiries() {
+  try {
+    if (fs.existsSync(ENQUIRIES_FILE)) {
+      return JSON.parse(fs.readFileSync(ENQUIRIES_FILE, 'utf8'));
+    }
+  } catch (e) {
+    console.warn('Could not read local enquiries file:', e.message);
+  }
+  return [];
+}
+
+function writeLocalEnquiries(data) {
+  try {
+    fs.writeFileSync(ENQUIRIES_FILE, JSON.stringify(data, null, 2), 'utf8');
+  } catch (e) {
+    console.warn('Could not write local enquiries file:', e.message);
+  }
+}
+// ────────────────────────────────────────────────────────────────────────────
 
 export default async function handler(req, res) {
   const { method } = req;
 
   if (!sql) {
+    // ── Offline / No-DB mode: persist to JSON file ────────────────────────
     if (method === 'POST') {
       const { id, name, email, phone, checkin, checkout, guests, roomType, room_type, message, cost, status, source, date } = req.body || {};
       if (!name || !email || !phone || !checkin || !checkout || !roomType) {
@@ -28,16 +55,21 @@ export default async function handler(req, res) {
         source: source || 'Online',
         date: date || (new Date().toLocaleDateString('en-IN') + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
       };
-      memoryEnquiries.unshift(newEnq);
+      const all = readLocalEnquiries();
+      // Deduplicate by id
+      const filtered = all.filter(e => e.id !== enqId);
+      filtered.unshift(newEnq);
+      writeLocalEnquiries(filtered);
       return res.status(200).json({ success: true, offline: true, id: enqId, message: 'Enquiry submitted successfully.' });
     }
 
     if (method === 'GET') {
+      const all = readLocalEnquiries();
       const isAuthorized = await verifyAdmin(req);
       if (isAuthorized) {
-        return res.status(200).json(memoryEnquiries);
+        return res.status(200).json(all);
       }
-      const sanitized = memoryEnquiries
+      const sanitized = all
         .filter(e => e.status === 'Confirmed')
         .map(e => ({ checkin: e.checkin, checkout: e.checkout, roomType: e.roomType, room_type: e.room_type, status: e.status }));
       return res.status(200).json(sanitized);
@@ -50,18 +82,22 @@ export default async function handler(req, res) {
 
     if (method === 'PUT') {
       const { id, status } = req.body || {};
-      const found = memoryEnquiries.find(e => e.id === id);
+      const all = readLocalEnquiries();
+      const found = all.find(e => e.id === id);
       if (found) found.status = status;
+      writeLocalEnquiries(all);
       return res.status(200).json({ success: true, offline: true, message: `Status updated to ${status}.` });
     }
 
     if (method === 'DELETE') {
       const { id, clear } = req.query;
+      let all = readLocalEnquiries();
       if (clear === 'true') {
-        memoryEnquiries = [];
+        writeLocalEnquiries([]);
         return res.status(200).json({ success: true, offline: true, message: 'All enquiries cleared.' });
       }
-      memoryEnquiries = memoryEnquiries.filter(e => e.id !== id);
+      all = all.filter(e => e.id !== id);
+      writeLocalEnquiries(all);
       return res.status(200).json({ success: true, offline: true, message: 'Enquiry deleted.' });
     }
 
