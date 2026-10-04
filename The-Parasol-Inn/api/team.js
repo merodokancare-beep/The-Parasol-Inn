@@ -1,4 +1,7 @@
 import { sql, verifyAdmin } from './_db.js';
+import { DEFAULT_TEAM } from './_seeds.js';
+
+let memoryTeam = [...DEFAULT_TEAM];
 
 async function ensureTeamTable() {
   if (!sql) return;
@@ -15,8 +18,55 @@ async function ensureTeamTable() {
 }
 
 export default async function handler(req, res) {
+  const { method } = req;
+
+  // Offline fallback if database is not connected
   if (!sql) {
-    return res.status(500).json({ error: 'Database connection offline.' });
+    if (method === 'GET') {
+      return res.status(200).json(memoryTeam);
+    }
+
+    const isAuthorized = await verifyAdmin(req);
+    if (!isAuthorized) {
+      return res.status(401).json({ error: 'Unauthorized admin access.' });
+    }
+
+    if (method === 'POST') {
+      const { id, name, role, bio, image, display_order } = req.body || {};
+      if (!id || !name || !role) {
+        return res.status(400).json({ error: 'ID, Name, and Role are required.' });
+      }
+
+      const existIdx = memoryTeam.findIndex(m => m.id === id);
+      const member = {
+        id,
+        name,
+        role,
+        bio: bio || '',
+        image: image || '',
+        display_order: parseInt(display_order) || 0
+      };
+
+      if (existIdx >= 0) {
+        memoryTeam[existIdx] = member;
+      } else {
+        memoryTeam.push(member);
+      }
+      memoryTeam.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+
+      return res.status(200).json({ success: true, offline: true, message: 'Team member saved successfully.' });
+    }
+
+    if (method === 'DELETE') {
+      const { id } = req.query;
+      if (!id) {
+        return res.status(400).json({ error: 'Member ID is required.' });
+      }
+      memoryTeam = memoryTeam.filter(m => m.id !== id);
+      return res.status(200).json({ success: true, offline: true, message: 'Team member deleted successfully.' });
+    }
+
+    return res.status(405).json({ error: 'Method Not Allowed.' });
   }
 
   try {
@@ -25,11 +75,19 @@ export default async function handler(req, res) {
     console.error('Error ensuring team table:', tableErr);
   }
 
-  const { method } = req;
-
   if (method === 'GET') {
     try {
-      const team = await sql`SELECT * FROM team ORDER BY display_order ASC, name ASC`;
+      let team = await sql`SELECT * FROM team ORDER BY display_order ASC, name ASC`;
+      if (team.length === 0 && DEFAULT_TEAM.length > 0) {
+        for (const m of DEFAULT_TEAM) {
+          await sql`
+            INSERT INTO team (id, name, role, bio, image, display_order)
+            VALUES (${m.id}, ${m.name}, ${m.role}, ${m.bio || ''}, ${m.image || ''}, ${m.display_order || 0})
+            ON CONFLICT (id) DO NOTHING
+          `;
+        }
+        team = await sql`SELECT * FROM team ORDER BY display_order ASC, name ASC`;
+      }
       return res.status(200).json(team);
     } catch (error) {
       console.error('Error fetching team members:', error);

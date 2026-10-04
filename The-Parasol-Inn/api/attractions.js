@@ -1,35 +1,53 @@
 import { sql, verifyAdmin } from './_db.js';
+import { DEFAULT_ATTRACTIONS } from './_seeds.js';
+
+let memoryAttractions = [...DEFAULT_ATTRACTIONS];
 
 export default async function handler(req, res) {
-  if (!sql) {
-    return res.status(500).json({ error: 'Database connection offline.' });
-  }
-
   const { method } = req;
 
-  if (method === 'GET') {
-    try {
-      const attractions = await sql`SELECT * FROM attractions`;
-      // Map drive_time back to driveTime for client-side compatibility
-      const mapped = attractions.map(att => ({
-        id: att.id,
-        name: att.name,
-        description: att.description,
-        distance: att.distance,
-        driveTime: att.drive_time,
-        image: att.image
-      }));
-      return res.status(200).json(mapped);
-    } catch (error) {
-      console.error('Error fetching attractions:', error);
-      return res.status(500).json({ error: error.message });
+  if (!sql) {
+    if (method === 'GET') {
+      return res.status(200).json(memoryAttractions);
     }
-  }
 
-  // Admin authorization check for mutating requests (POST, DELETE)
-  const isAuthorized = await verifyAdmin(req);
-  if (!isAuthorized) {
-    return res.status(401).json({ error: 'Unauthorized admin access.' });
+    const isAuthorized = await verifyAdmin(req);
+    if (!isAuthorized) {
+      return res.status(401).json({ error: 'Unauthorized admin access.' });
+    }
+
+    if (method === 'POST') {
+      const { id, name, description, distance, driveTime, image } = req.body || {};
+      if (!id || !name || !image) {
+        return res.status(400).json({ error: 'ID, Name, and Image are required.' });
+      }
+
+      const existIdx = memoryAttractions.findIndex(a => a.id === id);
+      const item = {
+        id,
+        name,
+        description: description || '',
+        distance: distance || '',
+        driveTime: driveTime || '',
+        image
+      };
+
+      if (existIdx >= 0) {
+        memoryAttractions[existIdx] = item;
+      } else {
+        memoryAttractions.push(item);
+      }
+      return res.status(200).json({ success: true, offline: true, message: 'Attraction saved successfully.' });
+    }
+
+    if (method === 'DELETE') {
+      const { id } = req.query;
+      if (!id) return res.status(400).json({ error: 'Attraction ID is required.' });
+      memoryAttractions = memoryAttractions.filter(a => a.id !== id);
+      return res.status(200).json({ success: true, offline: true, message: 'Attraction deleted successfully.' });
+    }
+
+    return res.status(405).json({ error: 'Method Not Allowed.' });
   }
 
   if (method === 'POST') {

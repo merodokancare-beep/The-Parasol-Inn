@@ -1,26 +1,51 @@
 import { sql, verifyAdmin } from './_db.js';
+import { DEFAULT_GALLERY } from './_seeds.js';
+
+let memoryGallery = [...DEFAULT_GALLERY];
 
 export default async function handler(req, res) {
-  if (!sql) {
-    return res.status(500).json({ error: 'Database connection offline.' });
-  }
-
   const { method } = req;
 
-  if (method === 'GET') {
-    try {
-      const gallery = await sql`SELECT * FROM gallery`;
-      return res.status(200).json(gallery);
-    } catch (error) {
-      console.error('Error fetching gallery:', error);
-      return res.status(500).json({ error: error.message });
+  if (!sql) {
+    if (method === 'GET') {
+      return res.status(200).json(memoryGallery);
     }
-  }
 
-  // Admin authorization check for mutating requests (POST, DELETE)
-  const isAuthorized = await verifyAdmin(req);
-  if (!isAuthorized) {
-    return res.status(401).json({ error: 'Unauthorized admin access.' });
+    const isAuthorized = await verifyAdmin(req);
+    if (!isAuthorized) {
+      return res.status(401).json({ error: 'Unauthorized admin access.' });
+    }
+
+    if (method === 'POST') {
+      const { id, category, image, title } = req.body || {};
+      if (!id || !category || !image) {
+        return res.status(400).json({ error: 'ID, category, and image are required.' });
+      }
+
+      const existIdx = memoryGallery.findIndex(g => g.id === id);
+      const item = {
+        id,
+        category,
+        image,
+        title: title || ''
+      };
+
+      if (existIdx >= 0) {
+        memoryGallery[existIdx] = item;
+      } else {
+        memoryGallery.push(item);
+      }
+      return res.status(200).json({ success: true, offline: true, message: 'Gallery item saved successfully.' });
+    }
+
+    if (method === 'DELETE') {
+      const { id } = req.query;
+      if (!id) return res.status(400).json({ error: 'Gallery item ID is required.' });
+      memoryGallery = memoryGallery.filter(g => g.id !== id);
+      return res.status(200).json({ success: true, offline: true, message: 'Gallery item deleted successfully.' });
+    }
+
+    return res.status(405).json({ error: 'Method Not Allowed.' });
   }
 
   if (method === 'POST') {

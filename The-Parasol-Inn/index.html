@@ -254,11 +254,11 @@
     <!-- ==========================================
          TESTIMONIALS (WHAT GUESTS SAY)
          ========================================== -->
-    <section class="testimonials-section">
+    <section class="testimonials-section" id="testimonials">
         <div class="container">
             <div class="section-header">
-                <span>Guest Experiences</span>
-                <h2>Whispers from the Hills</h2>
+                <span id="testimonials-subtitle">Guest Experiences</span>
+                <h2 id="testimonials-title">Whispers from the Hills</h2>
             </div>
             
             <div class="testimonial-container">
@@ -299,6 +299,14 @@
                 
                 <div class="slider-dots">
                     <!-- JS populated dots -->
+                </div>
+
+                <!-- Customer Review Trigger Button -->
+                <div class="testimonial-actions" style="text-align: center; margin-top: 36px;">
+                    <button type="button" class="btn btn-outline" id="btn-open-review-modal" style="display: inline-flex; align-items: center; gap: 10px; padding: 12px 28px; font-weight: 500; cursor: pointer;">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                        Share Your Experience
+                    </button>
                 </div>
             </div>
         </div>
@@ -373,6 +381,72 @@
         <a href="tel:+919246244599" class="float-btn float-phone" aria-label="Call Reception">
             <svg viewBox="0 0 24 24"><path d="m20.487 17.14-4.065-3.696a1.001 1.001 0 0 0-1.391.043l-2.393 2.461c-2.925-1.442-5.321-3.791-6.721-6.732l2.433-2.383a1 1 0 0 0 .073-1.4L4.857 2.053a1 1 0 0 0-1.428-.057L1.246 4.148C.41 4.975.127 6.196.53 7.291c1.802 4.896 5.679 8.795 10.59 10.613 1.096.406 2.32.122 3.148-.71l2.12-2.12a1 1 0 0 0-.073-1.43l-3.328-3.003V10.5c0-1.654 1.346-3 3-3h2V5.5c0-2.206-1.794-4-4-4h-3v2h3c1.103 0 2 .897 2 2v2H14.5c-2.757 0-5 2.243-5 5v3.136L20.487 17.14z"/></svg>
         </a>
+    </div>
+
+    <!-- ==========================================
+         CUSTOMER REVIEW SUBMISSION MODAL
+         ========================================== -->
+    <div class="review-modal-backdrop" id="modal-submit-review" style="display: none;">
+        <div class="review-modal-card">
+            <button type="button" class="review-modal-close" id="btn-close-review-modal" aria-label="Close modal">&times;</button>
+            <div class="review-modal-header">
+                <span class="review-modal-badge">Guest Experiences</span>
+                <h3>Share Your Story</h3>
+                <p>We'd love to hear about your stay at The Parasol Inn. Tell us about the mountain views, Tibetan cuisine, or peaceful ambiance.</p>
+            </div>
+            
+            <form id="form-customer-review" class="review-modal-form">
+                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                    <div class="form-group">
+                        <label for="review-author">Your Name <span style="color: #e53935;">*</span></label>
+                        <input type="text" id="review-author" class="form-control" placeholder="e.g. Priya Banerjee" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="review-location">City & Country <span style="color: #e53935;">*</span></label>
+                        <input type="text" id="review-location" class="form-control" placeholder="e.g. Kolkata, India" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Overall Experience Rating <span style="color: #e53935;">*</span></label>
+                    <div class="star-rating-select" id="review-star-rating" data-rating="5">
+                        <span class="star-btn active" data-val="1">★</span>
+                        <span class="star-btn active" data-val="2">★</span>
+                        <span class="star-btn active" data-val="3">★</span>
+                        <span class="star-btn active" data-val="4">★</span>
+                        <span class="star-btn active" data-val="5">★</span>
+                        <span class="rating-text" id="review-rating-label">5.0 / 5 — Exceptional</span>
+                    </div>
+                    <input type="hidden" id="review-rating-value" value="5">
+                </div>
+
+                <div class="form-group">
+                    <label for="review-quote">Your Review / Comments <span style="color: #e53935;">*</span></label>
+                    <textarea id="review-quote" class="form-control" rows="4" placeholder="How was your room, hospitality, view of Kanchenjunga, and wellness experience?" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="review-avatar-file">Your Photo (Optional)</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="file" id="review-avatar-file" class="form-control" accept="image/*" style="font-size: 0.85rem; padding: 8px;">
+                        <img id="review-avatar-preview" src="" alt="Avatar preview" style="display:none; width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid var(--accent-color);">
+                    </div>
+                    <small style="color: var(--text-secondary); font-size: 0.8rem; display: block; margin-top: 4px;">Square photo recommended. Auto-compressed before saving.</small>
+                    <input type="hidden" id="review-avatar-base64" value="">
+                </div>
+
+                <div class="review-modal-notice">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="flex-shrink:0; margin-top:2px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                    <span>To protect guest privacy and maintain genuine community feedback, submitted reviews are reviewed by our resort team before appearing on our homepage.</span>
+                </div>
+
+                <div id="review-submit-status" style="display: none; margin-bottom: 14px; padding: 12px; border-radius: 6px; font-size: 0.9rem;"></div>
+
+                <button type="submit" class="btn btn-primary" id="btn-submit-guest-review" style="width: 100%; justify-content: center; padding: 14px; font-size: 1rem;">
+                    Submit Review for Verification
+                </button>
+            </form>
+        </div>
     </div>
 
     <!-- Scripts -->

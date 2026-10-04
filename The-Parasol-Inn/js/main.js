@@ -37,7 +37,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 8. Initialize Enquiry Form Handlers
     initForms();
 
-    // 9. Setup active state for current page nav link
+    // 9. Initialize Customer Review Submission Modal
+    initCustomerReviewModal();
+
+    // 10. Setup active state for current page nav link
     setupActiveNavLink();
 });
 
@@ -157,21 +160,24 @@ const DEFAULT_TESTIMONIALS = [
         quote: "Absolutely breathtaking! Waking up to Kanchenjunga directly from our Premium Balcony Suite was an experience of a lifetime. The staff was incredibly warm and served authentic Sikkimese tea upon arrival. Highly recommended!",
         author: "Rajesh Sharma",
         location: "New Delhi",
-        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80"
+        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80",
+        rating: 5
     },
     {
         id: "test2",
         quote: "The Tibet Wellness Spa here is pure bliss. We visited Sikkim for an anniversary trek, and ending our trip at the resort was the best decision. The wood fire lounge and dynamic dining were first-class.",
         author: "Sarah Jenkins",
         location: "United Kingdom",
-        avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80"
+        avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80",
+        rating: 5
     },
     {
         id: "test3",
         quote: "Superb hospitality and attention to detail. Fast Wi-Fi was useful for checking on work, and the parking arrangements were secure. The restaurant's traditional Momos and Thukpa are delicious!",
         author: "Anirudh Roy",
         location: "Kolkata",
-        avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80"
+        avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80",
+        rating: 5
     }
 ];
 
@@ -182,9 +188,74 @@ const DEFAULT_SETTINGS = {
     emailBooking: "Passangbhutia298@gmail.com",
     whatsapp: "+919246244599",
     address: "The Parasol Inn, Swastik Gate, Upper Burtuk, Gangtok - 737101, Sikkim",
-    passcode: "admin123"
+    passcode: "admin123",
+    testimonialsSubtitle: "Guest Experiences",
+    testimonialsTitle: "Whispers from the Hills",
+    aboutHeroTitle: "Our Story",
+    aboutHeroSubtitle: "The Parasol Inn Sikkim",
+    aboutHeroImage: "https://images.unsplash.com/photo-1589308078059-be1415eab4c3?auto=format&fit=crop&w=1920&q=80",
+    aboutBadge: "Crafting hospitality since 2012",
+    aboutHeading: "A Legacy of Himalayan Hospitality",
+    aboutStoryP1: "The Parasol Inn Sikkim was conceptualized by a group of local travel professionals and hospitality veterans who wanted to design a luxury retreat that highlights the natural splendor of Gangtok without disturbing its peaceful ecosystem.",
+    aboutStoryP2: "We pride ourselves on using locally-sourced volcanic stones, traditional alpine wood carvings, and working closely with local craftspeople. Over the last decade, our hotel has become a hallmark of premium accommodation in North-East India, accommodating travelers from all around the globe who seek to explore Sikkim's heritage, monasteries, and peaks.",
+    aboutStoryP3: "Our commitment remains simple: providing a warm, modern sanctuary where guests arrive as travelers, and leave as members of our extended alpine family.",
+    aboutImg1: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=600&q=80",
+    aboutImg2: "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=600&q=80",
+    aboutVision: "To establish The Parasol Inn Sikkim as the premier luxury eco-hotel in the Eastern Himalayas, setting benchmarks for sustainable boutique tourism, high-end comfort, and authentic cultural hospitality.",
+    aboutMission: "To provide exceptional, immersive mountain experiences for our guests while preserving Sikkim's pristine environment and supporting local communities through fair-wage employment and heritage conservation projects.",
+    aboutTimelineSubtitle: "Our Milestones",
+    aboutTimelineTitle: "Journey Through Years",
+    aboutTimeline: [
+        {
+            year: "2012",
+            title: "The Foundation",
+            description: "Purchased the alpine forest edge land in Gangtok and laid down the foundation stones. Designed by architect Pema Lhatso using eco-sustainable volcanic materials."
+        },
+        {
+            year: "2014",
+            title: "Grand Opening",
+            description: "Opened our doors to the public with 15 deluxe rooms, a traditional dining lounge, and spectacular views of the snow-clad peaks."
+        },
+        {
+            year: "2018",
+            title: "Expansion & Wellness Spa",
+            description: "Added the Premium Balcony Suites wing and inaugurated the Tibet Wellness Spa, offering traditional hot-stone thermal treatments."
+        },
+        {
+            year: "2023",
+            title: "National Hospitality Award",
+            description: "Awarded the \"Best Luxury Mountain Retreat in North-East India\" for outstanding service, green footprint, and high-end reviews."
+        }
+    ],
+    aboutTeamSubtitle: "The Alpine Family",
+    aboutTeamTitle: "Hotel Management Team"
 };
-const DEFAULT_TEAM = [];
+const DEFAULT_TEAM = [
+    {
+        id: "team_1",
+        name: "Tenzing Norbu",
+        role: "Founder & Managing Director",
+        bio: "Born and raised in Gangtok, Tenzing dedicated over two decades to sustainable Himalayan ecotourism before establishing The Parasol Inn in 2012.",
+        image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+        display_order: 1
+    },
+    {
+        id: "team_2",
+        name: "Pema Dolma",
+        role: "General Manager",
+        bio: "With a background in international luxury hospitality management, Pema leads our daily guest experience team to deliver outstanding reviews.",
+        image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=400&q=80",
+        display_order: 2
+    },
+    {
+        id: "team_3",
+        name: "Tshering Tamang",
+        role: "Executive Chef",
+        bio: "Master Chef Tshering crafts our local Himalayan delicacies, Momos, and fusion menus using ingredients sourced directly from village farms.",
+        image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
+        display_order: 3
+    }
+];
 
 
 window.cachedRooms = DEFAULT_ROOMS;
@@ -467,23 +538,41 @@ function renderDynamicContent() {
     }
 
     // 5. Render Testimonials Section (index.html)
+    const testSubEl = document.getElementById('testimonials-subtitle');
+    const testTitleEl = document.getElementById('testimonials-title');
+    if (testSubEl) {
+        testSubEl.textContent = settings.testimonialsSubtitle || 'Guest Experiences';
+    }
+    if (testTitleEl) {
+        testTitleEl.textContent = settings.testimonialsTitle || 'Whispers from the Hills';
+    }
+
     const testimonialSlider = document.getElementById('testimonial-slider');
     if (testimonialSlider) {
         testimonialSlider.innerHTML = '';
-        testimonials.forEach(test => {
-            const slide = document.createElement('div');
-            slide.className = 'testimonial-slide';
-            slide.innerHTML = `
-                <svg class="quote-icon" viewBox="0 0 24 24"><path d="M13 14.725c0-5.141 3.892-10.519 10-11.725l.944 2c-4.437 1.286-6.944 4.248-6.944 6.725h6v9h-10v-6zm-13 0c0-5.141 3.892-10.519 10-11.725l.944 2c-4.437 1.286-6.944 4.248-6.944 6.725h6v9h-10v-6z" fill="currentColor"/></svg>
-                <p>"${test.quote}"</p>
-                <div class="testimonial-author">
-                    <img src="${test.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'}" alt="${test.author}">
-                    <h4>${test.author}</h4>
-                    <span>${test.location}</span>
-                </div>
-            `;
-            testimonialSlider.appendChild(slide);
-        });
+        const approvedTestimonials = (testimonials || []).filter(test => test.status === 'approved' || !test.status);
+        if (approvedTestimonials && approvedTestimonials.length > 0) {
+            approvedTestimonials.forEach(test => {
+                const slide = document.createElement('div');
+                slide.className = 'testimonial-slide';
+                const ratingCount = Math.min(5, Math.max(1, parseInt(test.rating) || 5));
+                const starsHTML = '★'.repeat(ratingCount) + '☆'.repeat(5 - ratingCount);
+                slide.innerHTML = `
+                    <div class="testimonial-stars" style="color: #c5a880; font-size: 1.15rem; margin-bottom: 12px; letter-spacing: 4px;">${starsHTML}</div>
+                    <svg class="quote-icon" viewBox="0 0 24 24"><path d="M13 14.725c0-5.141 3.892-10.519 10-11.725l.944 2c-4.437 1.286-6.944 4.248-6.944 6.725h6v9h-10v-6zm-13 0c0-5.141 3.892-10.519 10-11.725l.944 2c-4.437 1.286-6.944 4.248-6.944 6.725h6v9h-10v-6z" fill="currentColor"/></svg>
+                    <p>"${test.quote}"</p>
+                    <div class="testimonial-author">
+                        <img src="${test.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'}" alt="${test.author}">
+                        <h4>${test.author}</h4>
+                        <span>${test.location || 'Guest'}</span>
+                    </div>
+                `;
+                testimonialSlider.appendChild(slide);
+            });
+            initTestimonialSlider();
+        } else {
+            testimonialSlider.innerHTML = `<div class="testimonial-slide"><p style="color:var(--text-secondary); font-style:normal;">No verified guest reviews yet. Be the first to share your experience!</p></div>`;
+        }
     }
 
     // 6. Render Dynamic Gallery Grid (gallery.html)
@@ -536,12 +625,12 @@ function renderDynamicContent() {
         });
     }
 
-    // 8. Render Resort Management Team (about.html)
+    // 8. Render Hotel Management Team (about.html)
     const teamGrid = document.querySelector('.management-grid');
     if (teamGrid) {
-        teamGrid.innerHTML = '';
         const team = window.cachedTeam || [];
         if (team && team.length > 0) {
+            teamGrid.innerHTML = '';
             const sortedTeam = [...team].sort((a, b) => (parseInt(a.display_order) || 99) - (parseInt(b.display_order) || 99));
             sortedTeam.forEach(member => {
                 const card = document.createElement('div');
@@ -562,7 +651,10 @@ function renderDynamicContent() {
         }
     }
 
-    // 9. Inject Admin Link in Footer (Subtle)
+    // 9. Render About Us Dynamic Content (about.html)
+    renderAboutPage(settings);
+
+    // 10. Inject Admin Link in Footer (Subtle)
     const footerLinksLists = document.querySelectorAll('.footer-links');
     if (footerLinksLists.length >= 2) {
         const helpInfoCol = footerLinksLists[1];
@@ -571,6 +663,106 @@ function renderDynamicContent() {
             adminLi.innerHTML = '<a href="admin.html" style="opacity: 0.6; font-size: 0.85rem;">Admin Portal</a>';
             helpInfoCol.appendChild(adminLi);
         }
+    }
+}
+
+function renderAboutPage(settings) {
+    if (!settings) return;
+
+    // 0. Hero Banner
+    const heroSection = document.getElementById('about-hero-section');
+    if (heroSection && settings.aboutHeroImage) {
+        heroSection.style.backgroundImage = `url('${settings.aboutHeroImage}')`;
+    }
+    const heroTitleEl = document.getElementById('about-hero-title');
+    if (heroTitleEl && settings.aboutHeroTitle) {
+        heroTitleEl.textContent = settings.aboutHeroTitle;
+    }
+    const heroSubtitleEl = document.getElementById('about-hero-subtitle');
+    if (heroSubtitleEl && settings.aboutHeroSubtitle) {
+        heroSubtitleEl.textContent = settings.aboutHeroSubtitle;
+    }
+
+    // 1. Welcome badge and heading
+    const badgeEl = document.getElementById('about-badge');
+    if (badgeEl && settings.aboutBadge) {
+        badgeEl.textContent = settings.aboutBadge;
+    }
+
+    const headingEl = document.getElementById('about-heading');
+    if (headingEl && settings.aboutHeading) {
+        headingEl.textContent = settings.aboutHeading;
+    }
+
+    // 2. Story Paragraphs
+    const p1El = document.getElementById('about-story-p1');
+    if (p1El && settings.aboutStoryP1) {
+        p1El.textContent = settings.aboutStoryP1;
+    }
+    const p2El = document.getElementById('about-story-p2');
+    if (p2El && settings.aboutStoryP2) {
+        p2El.textContent = settings.aboutStoryP2;
+    }
+    const p3El = document.getElementById('about-story-p3');
+    if (p3El && settings.aboutStoryP3) {
+        p3El.textContent = settings.aboutStoryP3;
+    }
+
+    // 3. Intro Images
+    const img1El = document.getElementById('about-intro-img-1');
+    if (img1El && settings.aboutImg1) {
+        img1El.src = settings.aboutImg1;
+    }
+    const img2El = document.getElementById('about-intro-img-2');
+    if (img2El && settings.aboutImg2) {
+        img2El.src = settings.aboutImg2;
+    }
+
+    // 4. Vision and Mission
+    const visionEl = document.getElementById('about-vision-text');
+    if (visionEl && settings.aboutVision) {
+        visionEl.textContent = settings.aboutVision;
+    }
+    const missionEl = document.getElementById('about-mission-text');
+    if (missionEl && settings.aboutMission) {
+        missionEl.textContent = settings.aboutMission;
+    }
+
+    // 5. Timeline / Milestones
+    const timeSubEl = document.getElementById('about-timeline-subtitle');
+    if (timeSubEl && settings.aboutTimelineSubtitle) {
+        timeSubEl.textContent = settings.aboutTimelineSubtitle;
+    }
+    const timeTitleEl = document.getElementById('about-timeline-title');
+    if (timeTitleEl && settings.aboutTimelineTitle) {
+        timeTitleEl.textContent = settings.aboutTimelineTitle;
+    }
+
+    const timelineContainer = document.getElementById('about-timeline');
+    if (timelineContainer && Array.isArray(settings.aboutTimeline) && settings.aboutTimeline.length > 0) {
+        timelineContainer.innerHTML = '';
+        settings.aboutTimeline.forEach(item => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'timeline-item';
+            itemDiv.innerHTML = `
+                <div class="timeline-content">
+                    <div class="timeline-date">${item.year || ''}</div>
+                    <h3>${item.title || ''}</h3>
+                    <p>${item.description || ''}</p>
+                </div>
+            `;
+            timelineContainer.appendChild(itemDiv);
+        });
+    }
+
+    // 6. Management Team Section Header
+    const teamSubEl = document.getElementById('about-team-subtitle');
+    if (teamSubEl && settings.aboutTeamSubtitle) {
+        teamSubEl.textContent = settings.aboutTeamSubtitle;
+    }
+    const teamTitleEl = document.getElementById('about-team-title');
+    if (teamTitleEl && settings.aboutTeamTitle) {
+        teamTitleEl.textContent = settings.aboutTeamTitle;
     }
 }
 
@@ -701,19 +893,29 @@ function initHeroSlider() {
 /* ==========================================
    TESTIMONIALS SLIDER
    ========================================== */
+let testimonialSlideTimer = null;
 function initTestimonialSlider() {
     const slider = document.querySelector('.testimonial-slider');
     const slides = document.querySelectorAll('.testimonial-slide');
     const dotsContainer = document.querySelector('.slider-dots');
     
+    if (testimonialSlideTimer) {
+        clearInterval(testimonialSlideTimer);
+        testimonialSlideTimer = null;
+    }
+
     if (!slider || slides.length === 0) return;
 
     let currentIndex = 0;
     const intervalTime = 6000;
-    let slideTimer;
 
     // Clear previous dots if any (e.g. from dynamic re-render)
     if (dotsContainer) dotsContainer.innerHTML = '';
+
+    if (slides.length <= 1) {
+        slider.style.transform = 'translateX(0)';
+        return;
+    }
 
     // Create dots
     slides.forEach((_, idx) => {
@@ -739,17 +941,17 @@ function initTestimonialSlider() {
     }
 
     function autoSlide() {
-        if (slides.length === 0) return;
+        if (slides.length <= 1) return;
         const nextIndex = (currentIndex + 1) % slides.length;
         goToSlide(nextIndex);
     }
 
     function startTimer() {
-        slideTimer = setInterval(autoSlide, intervalTime);
+        testimonialSlideTimer = setInterval(autoSlide, intervalTime);
     }
 
     function resetTimer() {
-        clearInterval(slideTimer);
+        clearInterval(testimonialSlideTimer);
         startTimer();
     }
 
@@ -1268,7 +1470,7 @@ function initForms() {
                     const statusHeader = document.getElementById('popup-status-header') || {textContent: ''};
                     statusHeader.textContent = 'Enquiry Sent Successfully!';
                     const statusMessage = document.getElementById('popup-status-message') || {textContent: ''};
-                    statusMessage.textContent = 'Your booking request has been dispatched. The resort management team will review your dates and email you a confirmation details package shortly.';
+                    statusMessage.textContent = 'Your booking request has been dispatched. The hotel management team will review your dates and email you a confirmation details package shortly.';
                     
                     if (popupOverlay) popupOverlay.classList.add('active');
                     contactForm.reset();
@@ -1309,3 +1511,241 @@ function initForms() {
         }
     }
 }
+
+/* ==========================================
+   CUSTOMER REVIEW SUBMISSION & MODAL
+   ========================================== */
+function initCustomerReviewModal() {
+    const modal = document.getElementById('modal-submit-review');
+    const openBtn = document.getElementById('btn-open-review-modal');
+    const closeBtn = document.getElementById('btn-close-review-modal');
+    const form = document.getElementById('form-customer-review');
+    const starContainer = document.getElementById('review-star-rating');
+    const ratingInput = document.getElementById('review-rating-value');
+    const ratingLabel = document.getElementById('review-rating-label');
+    const avatarFileInput = document.getElementById('review-avatar-file');
+    const avatarPreview = document.getElementById('review-avatar-preview');
+    const avatarBase64Input = document.getElementById('review-avatar-base64');
+    const statusBox = document.getElementById('review-submit-status');
+    const submitBtn = document.getElementById('btn-submit-guest-review');
+
+    if (!modal) return;
+
+    // Rating text mapping
+    const ratingTexts = {
+        1: '1.0 / 5 — Disappointed',
+        2: '2.0 / 5 — Fair',
+        3: '3.0 / 5 — Good / Average',
+        4: '4.0 / 5 — Very Good',
+        5: '5.0 / 5 — Exceptional'
+    };
+
+    function updateStars(val) {
+        if (!starContainer) return;
+        const stars = starContainer.querySelectorAll('.star-btn');
+        stars.forEach(star => {
+            const starVal = parseInt(star.getAttribute('data-val'), 10);
+            if (starVal <= val) {
+                star.classList.add('active');
+            } else {
+                star.classList.remove('active');
+            }
+        });
+        if (ratingInput) ratingInput.value = val;
+        if (ratingLabel) ratingLabel.textContent = ratingTexts[val] || `${val}.0 / 5`;
+    }
+
+    if (starContainer) {
+        const stars = starContainer.querySelectorAll('.star-btn');
+        stars.forEach(star => {
+            star.addEventListener('click', () => {
+                const val = parseInt(star.getAttribute('data-val'), 10) || 5;
+                updateStars(val);
+            });
+        });
+    }
+
+    // Avatar image file reader & compression
+    if (avatarFileInput) {
+        avatarFileInput.addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const maxDim = 200;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > maxDim) {
+                            height *= maxDim / width;
+                            width = maxDim;
+                        }
+                    } else {
+                        if (height > maxDim) {
+                            width *= maxDim / height;
+                            height = maxDim;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+                    if (avatarBase64Input) avatarBase64Input.value = compressedBase64;
+                    if (avatarPreview) {
+                        avatarPreview.src = compressedBase64;
+                        avatarPreview.style.display = 'inline-block';
+                    }
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function openReviewModal() {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        if (statusBox) {
+            statusBox.style.display = 'none';
+            statusBox.innerHTML = '';
+        }
+        updateStars(5);
+    }
+
+    function closeReviewModal() {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    if (openBtn) {
+        openBtn.addEventListener('click', openReviewModal);
+    }
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeReviewModal);
+    }
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeReviewModal();
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.style.display === 'flex') {
+            closeReviewModal();
+        }
+    });
+
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const author = document.getElementById('review-author').value.trim();
+            const location = document.getElementById('review-location').value.trim();
+            const rating = parseInt(ratingInput ? ratingInput.value : '5', 10) || 5;
+            const quote = document.getElementById('review-quote').value.trim();
+            const avatar = (avatarBase64Input && avatarBase64Input.value) ? avatarBase64Input.value : '';
+
+            if (!author || !quote) {
+                alert('Please enter your name and review quote.');
+                return;
+            }
+
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting Review...';
+            }
+
+            try {
+                const payload = {
+                    isCustomerSubmission: true,
+                    author,
+                    location,
+                    rating,
+                    quote,
+                    avatar
+                };
+
+                const res = await fetch('/api/testimonials', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json().catch(() => ({}));
+
+                // Append pending review into localStorage so admin can see and moderate it even in offline mode
+                const localList = JSON.parse(localStorage.getItem('hotel_testimonials')) || [];
+                const submittedTestimonial = (data && data.testimonial) ? data.testimonial : {
+                    id: `rev-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                    author,
+                    location: location || 'Guest',
+                    rating,
+                    quote,
+                    avatar: avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+                    status: 'pending',
+                    createdAt: new Date().toISOString()
+                };
+                localList.unshift(submittedTestimonial);
+                localStorage.setItem('hotel_testimonials', JSON.stringify(localList));
+
+                if (statusBox) {
+                    statusBox.style.display = 'block';
+                    statusBox.style.background = 'rgba(46, 125, 50, 0.12)';
+                    statusBox.style.color = '#1b5e20';
+                    statusBox.style.border = '1px solid rgba(46, 125, 50, 0.3)';
+                    statusBox.innerHTML = `
+                        <div style="display:flex; align-items:flex-start; gap:8px;">
+                            <span style="font-size:1.1rem; line-height:1.2;">✓</span>
+                            <div>
+                                <strong>Thank you, ${author}!</strong>
+                                <p style="margin:4px 0 0 0; font-size:0.85rem; line-height:1.4;">Your review has been successfully submitted! It will be reviewed by our team and published to the website upon approval.</p>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                form.reset();
+                if (avatarPreview) {
+                    avatarPreview.src = '';
+                    avatarPreview.style.display = 'none';
+                }
+                if (avatarBase64Input) avatarBase64Input.value = '';
+                updateStars(5);
+
+                setTimeout(() => {
+                    closeReviewModal();
+                    if (statusBox) statusBox.style.display = 'none';
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Submit Review for Verification';
+                    }
+                }, 4000);
+
+            } catch (err) {
+                console.error('Error submitting review:', err);
+                if (statusBox) {
+                    statusBox.style.display = 'block';
+                    statusBox.style.background = 'rgba(211, 47, 47, 0.1)';
+                    statusBox.style.color = '#b71c1c';
+                    statusBox.style.border = '1px solid rgba(211, 47, 47, 0.3)';
+                    statusBox.innerHTML = `Error submitting review: ${err.message || 'Please check your connection and try again.'}`;
+                }
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Review for Verification';
+                }
+            }
+        });
+    }
+}
+

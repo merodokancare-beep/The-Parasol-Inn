@@ -84,21 +84,27 @@ export const DEFAULT_TESTIMONIALS = [
     quote: "Absolutely breathtaking! Waking up to Kanchenjunga directly from our Premium Balcony Suite was an experience of a lifetime. The staff was incredibly warm and served authentic Sikkimese tea upon arrival. Highly recommended!",
     author: "Rajesh Sharma",
     location: "New Delhi",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80"
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80",
+    rating: 5,
+    status: "approved"
   },
   {
     id: "test2",
     quote: "The Tibet Wellness Spa here is pure bliss. We visited Sikkim for an anniversary trek, and ending our trip at the resort was the best decision. The wood fire lounge and dynamic dining were first-class.",
     author: "Sarah Jenkins",
     location: "United Kingdom",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80"
+    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80",
+    rating: 5,
+    status: "approved"
   },
   {
     id: "test3",
     quote: "Superb hospitality and attention to detail. Fast Wi-Fi was useful for checking on work, and the parking arrangements were secure. The restaurant's traditional Momos and Thukpa are delicious!",
     author: "Anirudh Roy",
     location: "Kolkata",
-    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80"
+    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80",
+    rating: 5,
+    status: "approved"
   }
 ];
 
@@ -110,8 +116,74 @@ export const DEFAULT_SETTINGS = {
   emailBooking: "Passangbhutia298@gmail.com",
   whatsapp: "+919246244599",
   address: "The Parasol Inn, Swastik Gate, Upper Burtuk, Gangtok - 737101, Sikkim",
-  passcode: "admin123"
+  passcode: "admin123",
+  testimonialsSubtitle: "Guest Experiences",
+  testimonialsTitle: "Whispers from the Hills",
+  // About Us Page Fields
+  aboutHeroTitle: "Our Story",
+  aboutHeroSubtitle: "The Parasol Inn Sikkim",
+  aboutHeroImage: "https://images.unsplash.com/photo-1589308078059-be1415eab4c3?auto=format&fit=crop&w=1920&q=80",
+  aboutBadge: "Crafting hospitality since 2012",
+  aboutHeading: "A Legacy of Himalayan Hospitality",
+  aboutStoryP1: "The Parasol Inn Sikkim was conceptualized by a group of local travel professionals and hospitality veterans who wanted to design a luxury retreat that highlights the natural splendor of Gangtok without disturbing its peaceful ecosystem.",
+  aboutStoryP2: "We pride ourselves on using locally-sourced volcanic stones, traditional alpine wood carvings, and working closely with local craftspeople. Over the last decade, our hotel has become a hallmark of premium accommodation in North-East India, accommodating travelers from all around the globe who seek to explore Sikkim's heritage, monasteries, and peaks.",
+  aboutStoryP3: "Our commitment remains simple: providing a warm, modern sanctuary where guests arrive as travelers, and leave as members of our extended alpine family.",
+  aboutImg1: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=600&q=80",
+  aboutImg2: "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=600&q=80",
+  aboutVision: "To establish The Parasol Inn Sikkim as the premier luxury eco-hotel in the Eastern Himalayas, setting benchmarks for sustainable boutique tourism, high-end comfort, and authentic cultural hospitality.",
+  aboutMission: "To provide exceptional, immersive mountain experiences for our guests while preserving Sikkim's pristine environment and supporting local communities through fair-wage employment and heritage conservation projects.",
+  aboutTimelineSubtitle: "Our Milestones",
+  aboutTimelineTitle: "Journey Through Years",
+  aboutTimeline: [
+    {
+      year: "2012",
+      title: "The Foundation",
+      description: "Purchased the alpine forest edge land in Gangtok and laid down the foundation stones. Designed by architect Pema Lhatso using eco-sustainable volcanic materials."
+    },
+    {
+      year: "2014",
+      title: "Grand Opening",
+      description: "Opened our doors to the public with 15 deluxe rooms, a traditional dining lounge, and spectacular views of the snow-clad peaks."
+    },
+    {
+      year: "2018",
+      title: "Expansion & Wellness Spa",
+      description: "Added the Premium Balcony Suites wing and inaugurated the Tibet Wellness Spa, offering traditional hot-stone thermal treatments."
+    },
+    {
+      year: "2023",
+      title: "National Hospitality Award",
+      description: "Awarded the \"Best Luxury Mountain Retreat in North-East India\" for outstanding service, green footprint, and high-end reviews."
+    }
+  ],
+  aboutTeamSubtitle: "The Alpine Family",
+  aboutTeamTitle: "Hotel Management Team"
 };
 
-export const DEFAULT_TEAM = [];
+export const DEFAULT_TEAM = [
+  {
+    id: "team_1",
+    name: "Tenzing Norbu",
+    role: "Founder & Managing Director",
+    bio: "Born and raised in Gangtok, Tenzing dedicated over two decades to sustainable Himalayan ecotourism before establishing The Parasol Inn in 2012.",
+    image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+    display_order: 1
+  },
+  {
+    id: "team_2",
+    name: "Pema Dolma",
+    role: "General Manager",
+    bio: "With a background in international luxury hospitality management, Pema leads our daily guest experience team to deliver outstanding reviews.",
+    image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=400&q=80",
+    display_order: 2
+  },
+  {
+    id: "team_3",
+    name: "Tshering Tamang",
+    role: "Executive Chef",
+    bio: "Master Chef Tshering crafts our local Himalayan delicacies, Momos, and fusion menus using ingredients sourced directly from village farms.",
+    image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
+    display_order: 3
+  }
+];
 

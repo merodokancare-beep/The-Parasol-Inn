@@ -1,11 +1,72 @@
 import { sql, verifyAdmin } from './_db.js';
 
-export default async function handler(req, res) {
-  if (!sql) {
-    return res.status(500).json({ error: 'Database connection offline.' });
-  }
+let memoryEnquiries = [];
 
+export default async function handler(req, res) {
   const { method } = req;
+
+  if (!sql) {
+    if (method === 'POST') {
+      const { id, name, email, phone, checkin, checkout, guests, roomType, room_type, message, cost, status, source, date } = req.body || {};
+      if (!name || !email || !phone || !checkin || !checkout || !roomType) {
+        return res.status(400).json({ error: 'Missing required booking fields.' });
+      }
+      const enqId = id || 'enq_' + Date.now();
+      const newEnq = {
+        id: enqId,
+        name,
+        email,
+        phone,
+        checkin,
+        checkout,
+        guests: parseInt(guests) || 1,
+        roomType,
+        room_type: room_type || '',
+        message: message || '',
+        cost: parseInt(cost) || 0,
+        status: status || 'Pending',
+        source: source || 'Online',
+        date: date || (new Date().toLocaleDateString('en-IN') + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
+      };
+      memoryEnquiries.unshift(newEnq);
+      return res.status(200).json({ success: true, offline: true, id: enqId, message: 'Enquiry submitted successfully.' });
+    }
+
+    if (method === 'GET') {
+      const isAuthorized = await verifyAdmin(req);
+      if (isAuthorized) {
+        return res.status(200).json(memoryEnquiries);
+      }
+      const sanitized = memoryEnquiries
+        .filter(e => e.status === 'Confirmed')
+        .map(e => ({ checkin: e.checkin, checkout: e.checkout, roomType: e.roomType, room_type: e.room_type, status: e.status }));
+      return res.status(200).json(sanitized);
+    }
+
+    const isAuthorized = await verifyAdmin(req);
+    if (!isAuthorized) {
+      return res.status(401).json({ error: 'Unauthorized admin access.' });
+    }
+
+    if (method === 'PUT') {
+      const { id, status } = req.body || {};
+      const found = memoryEnquiries.find(e => e.id === id);
+      if (found) found.status = status;
+      return res.status(200).json({ success: true, offline: true, message: `Status updated to ${status}.` });
+    }
+
+    if (method === 'DELETE') {
+      const { id, clear } = req.query;
+      if (clear === 'true') {
+        memoryEnquiries = [];
+        return res.status(200).json({ success: true, offline: true, message: 'All enquiries cleared.' });
+      }
+      memoryEnquiries = memoryEnquiries.filter(e => e.id !== id);
+      return res.status(200).json({ success: true, offline: true, message: 'Enquiry deleted.' });
+    }
+
+    return res.status(405).json({ error: 'Method Not Allowed.' });
+  }
 
   // POST (Public submission of a new enquiry/booking)
   if (method === 'POST') {

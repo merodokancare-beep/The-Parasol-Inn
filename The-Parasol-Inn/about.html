@@ -210,11 +210,11 @@
     <!-- ==========================================
          SUBPAGE HERO BANNER
          ========================================== -->
-    <section class="subpage-hero"
+    <section class="subpage-hero" id="about-hero-section"
         style="background-image: url('https://images.unsplash.com/photo-1589308078059-be1415eab4c3?auto=format&fit=crop&w=1920&q=80');">
         <div class="subpage-hero-content">
-            <h1>Our Story</h1>
-            <p>The Parasol Inn Sikkim</p>
+            <h1 id="about-hero-title">Our Story</h1>
+            <p id="about-hero-subtitle">The Parasol Inn Sikkim</p>
         </div>
     </section>
 
@@ -225,27 +225,29 @@
         <div class="container">
             <div class="about-intro-grid">
                 <div class="about-story">
-                    <span class="welcome-text"><span class="sub">Crafting hospitality since 2012</span></span>
-                    <h2
+                    <span class="welcome-text"><span class="sub" id="about-badge">Crafting hospitality since 2012</span></span>
+                    <h2 id="about-heading"
                         style="font-size: 2.5rem; color: #1b3b2b; margin-bottom: 20px; font-family: var(--font-heading);">
                         A Legacy of Himalayan Hospitality</h2>
-                    <p>The Parasol Inn Sikkim was conceptualized by a group of local travel professionals and
-                        hospitality veterans who wanted to design a luxury retreat that highlights the natural splendor
-                        of Gangtok without disturbing its peaceful ecosystem.</p>
-                    <p>We pride ourselves on using locally-sourced volcanic stones, traditional alpine wood carvings,
-                        and working closely with local craftspeople. Over the last decade, our resort has become a
-                        hallmark of premium accommodation in North-East India, accommodating travelers from all around
-                        the globe who seek to explore Sikkim's heritage, monasteries, and peaks.</p>
-                    <p>Our commitment remains simple: providing a warm, modern sanctuary where guests arrive as
-                        travelers, and leave as members of our extended alpine family.</p>
+                    <div id="about-story-paragraphs">
+                        <p id="about-story-p1">The Parasol Inn Sikkim was conceptualized by a group of local travel professionals and
+                            hospitality veterans who wanted to design a luxury retreat that highlights the natural splendor
+                            of Gangtok without disturbing its peaceful ecosystem.</p>
+                        <p id="about-story-p2">We pride ourselves on using locally-sourced volcanic stones, traditional alpine wood carvings,
+                            and working closely with local craftspeople. Over the last decade, our hotel has become a
+                            hallmark of premium accommodation in North-East India, accommodating travelers from all around
+                            the globe who seek to explore Sikkim's heritage, monasteries, and peaks.</p>
+                        <p id="about-story-p3">Our commitment remains simple: providing a warm, modern sanctuary where guests arrive as
+                            travelers, and leave as members of our extended alpine family.</p>
+                    </div>
                 </div>
                 <div class="about-intro-images">
                     <div class="about-intro-img">
-                        <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=600&q=80"
-                            alt="Resort Exterior Front View" style="width: 100%; height: 100%; object-fit: cover;">
+                        <img id="about-intro-img-1" src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=600&q=80"
+                            alt="Hotel Exterior Front View" style="width: 100%; height: 100%; object-fit: cover;">
                     </div>
                     <div class="about-intro-img">
-                        <img src="https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=600&q=80"
+                        <img id="about-intro-img-2" src="https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=600&q=80"
                             alt="Himalayan Suite Lounge" style="width: 100%; height: 100%; object-fit: cover;">
                     </div>
                 </div>
@@ -261,7 +263,7 @@
                         </svg>
                         Our Vision
                     </h3>
-                    <p>To establish The Parasol Inn Sikkim as the premier luxury eco-resort in the Eastern Himalayas,
+                    <p id="about-vision-text">To establish The Parasol Inn Sikkim as the premier luxury eco-hotel in the Eastern Himalayas,
                         setting benchmarks for sustainable boutique tourism, high-end comfort, and authentic cultural
                         hospitality.</p>
                 </div>
@@ -273,7 +275,7 @@
                         </svg>
                         Our Mission
                     </h3>
-                    <p>To provide exceptional, immersive mountain experiences for our guests while preserving Sikkim's
+                    <p id="about-mission-text">To provide exceptional, immersive mountain experiences for our guests while preserving Sikkim's
                         pristine environment and supporting local communities through fair-wage employment and heritage
                         conservation projects.</p>
                 </div>
@@ -287,11 +289,11 @@
     <section class="timeline-section" id="timeline">
         <div class="container">
             <div class="section-header">
-                <span>Our Milestones</span>
-                <h2>Journey Through Years</h2>
+                <span id="about-timeline-subtitle">Our Milestones</span>
+                <h2 id="about-timeline-title">Journey Through Years</h2>
             </div>
 
-            <div class="timeline">
+            <div class="timeline" id="about-timeline">
                 <!-- Timeline item 1 -->
                 <div class="timeline-item">
                     <div class="timeline-content">
@@ -342,12 +344,52 @@
         style="border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
         <div class="container">
             <div class="section-header">
-                <span>The Alpine Family</span>
-                <h2>Resort Management Team</h2>
+                <span id="about-team-subtitle">The Alpine Family</span>
+                <h2 id="about-team-title">Hotel Management Team</h2>
             </div>
 
             <div class="management-grid">
-                <!-- Dynamically rendered from database -->
+                <!-- Member 1 -->
+                <div class="member-card">
+                    <div class="member-img">
+                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80"
+                            alt="Tenzing Norbu" style="width: 100%; height: 100%; object-fit: cover;">
+                    </div>
+                    <div class="member-info">
+                        <h4>Tenzing Norbu</h4>
+                        <span>Founder & Managing Director</span>
+                        <p>Born and raised in Gangtok, Tenzing dedicated over two decades to sustainable Himalayan
+                            ecotourism before establishing The Parasol Inn in 2012.</p>
+                    </div>
+                </div>
+
+                <!-- Member 2 -->
+                <div class="member-card">
+                    <div class="member-img">
+                        <img src="https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=400&q=80"
+                            alt="Pema Dolma" style="width: 100%; height: 100%; object-fit: cover;">
+                    </div>
+                    <div class="member-info">
+                        <h4>Pema Dolma</h4>
+                        <span>General Manager</span>
+                        <p>With a background in international luxury hospitality management, Pema leads our daily guest
+                            experience team to deliver outstanding reviews.</p>
+                    </div>
+                </div>
+
+                <!-- Member 3 -->
+                <div class="member-card">
+                    <div class="member-img">
+                        <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80"
+                            alt="Chef Tshering Tamang" style="width: 100%; height: 100%; object-fit: cover;">
+                    </div>
+                    <div class="member-info">
+                        <h4>Tshering Tamang</h4>
+                        <span>Executive Chef</span>
+                        <p>Master Chef Tshering crafts our local Himalayan delicacies, Momos, and fusion menus using
+                            ingredients sourced directly from village farms.</p>
+                    </div>
+                </div>
             </div>
         </div>
     </section>

@@ -9,10 +9,6 @@ import {
 } from './_seeds.js';
 
 export default async function handler(req, res) {
-  if (!sql) {
-    return res.status(500).json({ error: 'Database connection offline.' });
-  }
-
   // Admin authorization check
   const isAuthorized = await verifyAdmin(req);
   if (!isAuthorized) {
@@ -20,6 +16,24 @@ export default async function handler(req, res) {
   }
 
   const { method } = req;
+
+  if (!sql) {
+    if (method === 'GET') {
+      return res.status(200).json({
+        rooms: DEFAULT_ROOMS,
+        gallery: DEFAULT_GALLERY,
+        attractions: DEFAULT_ATTRACTIONS,
+        testimonials: DEFAULT_TESTIMONIALS,
+        settings: DEFAULT_SETTINGS,
+        enquiries: [],
+        team: DEFAULT_TEAM
+      });
+    }
+    if (method === 'POST') {
+      return res.status(200).json({ success: true, offline: true, message: 'Backup accepted in offline mode.' });
+    }
+    return res.status(405).json({ error: 'Method Not Allowed.' });
+  }
 
   // GET (Export backup)
   if (method === 'GET') {
@@ -137,18 +151,32 @@ export default async function handler(req, res) {
 
       if (Array.isArray(testimonials)) {
         for (const test of testimonials) {
-          await sql`
-            INSERT INTO testimonials (id, quote, author, location, avatar)
-            VALUES (${test.id}, ${test.quote}, ${test.author}, ${test.location}, ${test.avatar})
-          `;
+          try {
+            await sql`
+              INSERT INTO testimonials (id, quote, author, location, avatar, rating)
+              VALUES (${test.id}, ${test.quote}, ${test.author}, ${test.location}, ${test.avatar}, ${test.rating || 5})
+            `;
+          } catch (tErr) {
+            await sql`
+              INSERT INTO testimonials (id, quote, author, location, avatar)
+              VALUES (${test.id}, ${test.quote}, ${test.author}, ${test.location}, ${test.avatar})
+            `;
+          }
         }
       }
 
       if (settings) {
-        await sql`
-          INSERT INTO settings (id, phone_front_desk, phone_reservations, email_info, email_booking, whatsapp, address, passcode)
-          VALUES ('global', ${settings.phoneFrontDesk}, ${settings.phoneReservations}, ${settings.emailInfo}, ${settings.emailBooking}, ${settings.whatsapp}, ${settings.address}, ${settings.passcode || 'admin123'})
-        `;
+        try {
+          await sql`
+            INSERT INTO settings (id, phone_front_desk, phone_reservations, email_info, email_booking, whatsapp, address, passcode, testimonials_subtitle, testimonials_title)
+            VALUES ('global', ${settings.phoneFrontDesk}, ${settings.phoneReservations}, ${settings.emailInfo}, ${settings.emailBooking}, ${settings.whatsapp}, ${settings.address}, ${settings.passcode || 'admin123'}, ${settings.testimonialsSubtitle || 'Guest Experiences'}, ${settings.testimonialsTitle || 'Whispers from the Hills'})
+          `;
+        } catch (sErr) {
+          await sql`
+            INSERT INTO settings (id, phone_front_desk, phone_reservations, email_info, email_booking, whatsapp, address, passcode)
+            VALUES ('global', ${settings.phoneFrontDesk}, ${settings.phoneReservations}, ${settings.emailInfo}, ${settings.emailBooking}, ${settings.whatsapp}, ${settings.address}, ${settings.passcode || 'admin123'})
+          `;
+        }
       }
 
       if (Array.isArray(enquiries)) {
@@ -216,16 +244,30 @@ export default async function handler(req, res) {
       }
 
       for (const test of DEFAULT_TESTIMONIALS) {
-        await sql`
-          INSERT INTO testimonials (id, quote, author, location, avatar)
-          VALUES (${test.id}, ${test.quote}, ${test.author}, ${test.location}, ${test.avatar})
-        `;
+        try {
+          await sql`
+            INSERT INTO testimonials (id, quote, author, location, avatar, rating)
+            VALUES (${test.id}, ${test.quote}, ${test.author}, ${test.location}, ${test.avatar}, ${test.rating || 5})
+          `;
+        } catch (tErr) {
+          await sql`
+            INSERT INTO testimonials (id, quote, author, location, avatar)
+            VALUES (${test.id}, ${test.quote}, ${test.author}, ${test.location}, ${test.avatar})
+          `;
+        }
       }
 
-      await sql`
-        INSERT INTO settings (id, phone_front_desk, phone_reservations, email_info, email_booking, whatsapp, address, passcode)
-        VALUES ('global', ${DEFAULT_SETTINGS.phoneFrontDesk}, ${DEFAULT_SETTINGS.phoneReservations}, ${DEFAULT_SETTINGS.emailInfo}, ${DEFAULT_SETTINGS.emailBooking}, ${DEFAULT_SETTINGS.whatsapp}, ${DEFAULT_SETTINGS.address}, ${DEFAULT_SETTINGS.passcode})
-      `;
+      try {
+        await sql`
+          INSERT INTO settings (id, phone_front_desk, phone_reservations, email_info, email_booking, whatsapp, address, passcode, testimonials_subtitle, testimonials_title)
+          VALUES ('global', ${DEFAULT_SETTINGS.phoneFrontDesk}, ${DEFAULT_SETTINGS.phoneReservations}, ${DEFAULT_SETTINGS.emailInfo}, ${DEFAULT_SETTINGS.emailBooking}, ${DEFAULT_SETTINGS.whatsapp}, ${DEFAULT_SETTINGS.address}, ${DEFAULT_SETTINGS.passcode}, ${DEFAULT_SETTINGS.testimonialsSubtitle || 'Guest Experiences'}, ${DEFAULT_SETTINGS.testimonialsTitle || 'Whispers from the Hills'})
+        `;
+      } catch (sErr) {
+        await sql`
+          INSERT INTO settings (id, phone_front_desk, phone_reservations, email_info, email_booking, whatsapp, address, passcode)
+          VALUES ('global', ${DEFAULT_SETTINGS.phoneFrontDesk}, ${DEFAULT_SETTINGS.phoneReservations}, ${DEFAULT_SETTINGS.emailInfo}, ${DEFAULT_SETTINGS.emailBooking}, ${DEFAULT_SETTINGS.whatsapp}, ${DEFAULT_SETTINGS.address}, ${DEFAULT_SETTINGS.passcode})
+        `;
+      }
 
       for (const m of DEFAULT_TEAM) {
         await sql`

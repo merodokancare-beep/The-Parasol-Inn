@@ -1003,12 +1003,20 @@ body.dark-mode .room-price span {
     padding: 0 40px;
 }
 
+.testimonial-stars {
+    color: var(--accent-color);
+    font-size: 1.15rem;
+    letter-spacing: 4px;
+    margin: 0 auto 16px;
+    display: inline-block;
+}
+
 .testimonial-slide svg.quote-icon {
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
     fill: var(--accent-color);
-    opacity: 0.3;
-    margin: 0 auto 30px;
+    opacity: 0.35;
+    margin: 0 auto 24px;
 }
 
 .testimonial-slide p {
@@ -2109,4 +2117,143 @@ body.dark-mode .contact-detail-item .icon-box {
     .booking-form-grid button {
         grid-column: span 1;
     }
+}
+
+/* ==========================================================================
+   CUSTOMER REVIEW MODAL & STAR PICKER
+   ========================================================================== */
+.review-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(12, 18, 14, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 2500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeInModal 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeInModal {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.review-modal-card {
+    position: relative;
+    background: var(--bg-light, #ffffff);
+    width: 100%;
+    max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+    border-radius: var(--border-radius, 8px);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--accent-light, #e3dbc9);
+    padding: 36px 32px;
+    animation: slideUpModal 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpModal {
+    from { transform: translateY(24px) scale(0.98); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.review-modal-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: transparent;
+    border: none;
+    font-size: 28px;
+    line-height: 1;
+    color: var(--text-secondary, #666);
+    cursor: pointer;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.review-modal-close:hover {
+    color: var(--primary-color, #132b21);
+    transform: rotate(90deg);
+}
+
+.review-modal-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.review-modal-badge {
+    display: inline-block;
+    font-family: var(--font-accent);
+    color: var(--accent-color, #c89b3f);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+
+.review-modal-header h3 {
+    font-family: var(--font-heading);
+    font-size: 1.85rem;
+    color: var(--primary-color, #132b21);
+    margin-bottom: 8px;
+}
+
+.review-modal-header p {
+    font-size: 0.92rem;
+    color: var(--text-secondary, #666);
+    line-height: 1.5;
+    margin: 0;
+}
+
+.star-rating-select {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(200, 155, 63, 0.08);
+    border-radius: var(--border-radius, 6px);
+    border: 1px solid rgba(200, 155, 63, 0.2);
+}
+
+.star-rating-select .star-btn {
+    font-size: 1.6rem;
+    line-height: 1;
+    color: #d1c7b7;
+    cursor: pointer;
+    transition: color 0.15s ease, transform 0.15s ease;
+    user-select: none;
+}
+
+.star-rating-select .star-btn.active {
+    color: #c89b3f;
+    text-shadow: 0 0 10px rgba(200, 155, 63, 0.4);
+}
+
+.star-rating-select .star-btn:hover {
+    transform: scale(1.2);
+}
+
+.star-rating-select .rating-text {
+    margin-left: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--primary-color, #132b21);
+}
+
+.review-modal-notice {
+    display: flex;
+    gap: 10px;
+    padding: 12px 14px;
+    background: #f6f8f6;
+    border-left: 3px solid var(--accent-color, #c89b3f);
+    border-radius: 4px;
+    font-size: 0.82rem;
+    color: var(--text-secondary, #555);
+    line-height: 1.45;
+    margin-bottom: 20px;
 }
