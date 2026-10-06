@@ -47,18 +47,26 @@ module.exports = async (req, res) => {
                 return res.status(200).json({ success: true, message: `Status updated to ${targetStatus}` });
             }
 
-            const { id, avatar, author, location, quote, rating, status } = req.body;
+            const { id, avatar, author, location, quote, rating, status, video_url } = req.body;
             const targetStatus = status === 'pending' ? 'pending' : 'approved';
+            const cleanVideoUrl = video_url ? String(video_url).trim() : '';
             try {
                 await db.query(
-                    'INSERT INTO testimonials (id, avatar, author, location, quote, rating, status) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (id) DO UPDATE SET avatar=$2, author=$3, location=$4, quote=$5, rating=$6, status=$7',
-                    [id, avatar, author, location, quote, parseInt(rating) || 5, targetStatus]
+                    'INSERT INTO testimonials (id, avatar, author, location, quote, rating, status, video_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (id) DO UPDATE SET avatar=$2, author=$3, location=$4, quote=$5, rating=$6, status=$7, video_url=$8',
+                    [id, avatar, author, location, quote, parseInt(rating) || 5, targetStatus, cleanVideoUrl]
                 );
             } catch (colErr) {
-                await db.query(
-                    'INSERT INTO testimonials (id, avatar, author, location, quote, rating) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (id) DO UPDATE SET avatar=$2, author=$3, location=$4, quote=$5, rating=$6',
-                    [id, avatar, author, location, quote, parseInt(rating) || 5]
-                );
+                try {
+                    await db.query(
+                        'INSERT INTO testimonials (id, avatar, author, location, quote, rating, status) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (id) DO UPDATE SET avatar=$2, author=$3, location=$4, quote=$5, rating=$6, status=$7',
+                        [id, avatar, author, location, quote, parseInt(rating) || 5, targetStatus]
+                    );
+                } catch (colErr2) {
+                    await db.query(
+                        'INSERT INTO testimonials (id, avatar, author, location, quote, rating) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (id) DO UPDATE SET avatar=$2, author=$3, location=$4, quote=$5, rating=$6',
+                        [id, avatar, author, location, quote, parseInt(rating) || 5]
+                    );
+                }
             }
             return res.status(200).json({ success: true, message: "Testimonial saved successfully." });
         }

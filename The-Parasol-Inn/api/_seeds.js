@@ -86,7 +86,8 @@ export const DEFAULT_TESTIMONIALS = [
     location: "New Delhi",
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80",
     rating: 5,
-    status: "approved"
+    status: "approved",
+    video_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
   },
   {
     id: "test2",
@@ -95,7 +96,8 @@ export const DEFAULT_TESTIMONIALS = [
     location: "United Kingdom",
     avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80",
     rating: 5,
-    status: "approved"
+    status: "approved",
+    video_url: ""
   },
   {
     id: "test3",
@@ -104,7 +106,8 @@ export const DEFAULT_TESTIMONIALS = [
     location: "Kolkata",
     avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80",
     rating: 5,
-    status: "approved"
+    status: "approved",
+    video_url: ""
   }
 ];
 

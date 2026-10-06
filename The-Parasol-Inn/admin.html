@@ -1089,8 +1089,13 @@
             <div class="tab-panel" id="panel-testimonials">
                 <div class="page-header">
                     <div>
-                        <h1>Guest Review Moderation</h1>
-                        <p>Manage and moderate authentic reviews submitted by guests from the website. Only approved reviews will appear publicly on the homepage.</p>
+                        <h1>Guest Review & Video Management</h1>
+                        <p>Manage and moderate authentic text & video reviews. Upload guest review videos directly or link external video sources.</p>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-primary" id="btn-add-testimonial" style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 1.15rem; line-height: 1;">+</span> Add Review / Upload Video
+                        </button>
                     </div>
                 </div>
 
@@ -1607,11 +1612,11 @@
 
     <!-- Testimonial Modal -->
     <div class="modal-overlay" id="modal-testimonial">
-        <div class="modal-card">
+        <div class="modal-card" style="max-width: 680px;">
             <div class="modal-header">
                 <div>
-                    <h3 id="testimonial-modal-title" style="margin-bottom: 2px;">Moderate Guest Review</h3>
-                    <p style="font-size: 0.82rem; color: var(--admin-text-mute); margin: 0;">Submitted by guest via the website. Moderate content and display status.</p>
+                    <h3 id="testimonial-modal-title" style="margin-bottom: 2px;">Guest Review & Video</h3>
+                    <p style="font-size: 0.82rem; color: var(--admin-text-mute); margin: 0;">Add or moderate guest reviews, including uploading video experiences.</p>
                 </div>
                 <button type="button" class="modal-close" onclick="closeModal('modal-testimonial')">&times;</button>
             </div>
@@ -1631,7 +1636,7 @@
                     <div class="form-group">
                         <label for="testimonial-form-avatar">Guest Avatar Photo</label>
                         <div style="display: flex; gap: 8px;">
-                            <input type="text" id="testimonial-form-avatar" class="form-control" placeholder="https://images.unsplash.com/... or upload local image" style="flex: 1;" required>
+                            <input type="text" id="testimonial-form-avatar" class="form-control" placeholder="https://images.unsplash.com/... or upload local image" style="flex: 1;">
                             <div style="position: relative; overflow: hidden; display: inline-block;">
                                 <button type="button" class="btn btn-secondary" style="height: 38px; white-space: nowrap; font-size: 0.85rem; padding: 0 12px;">Local Image</button>
                                 <input type="file" id="testimonial-form-avatar-file" accept="image/*" style="position: absolute; font-size: 100px; right: 0; top: 0; opacity: 0; cursor: pointer;">
@@ -1650,6 +1655,57 @@
                         </select>
                     </div>
                 </div>
+
+                <!-- Guest Review Video Upload & Link Section -->
+                <div class="form-group" style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--admin-border); border-radius: var(--admin-radius); padding: 16px; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <label style="margin-bottom: 0; font-weight: 600; color: var(--admin-primary); display: flex; align-items: center; gap: 8px;">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+                            Guest Review Video (Optional)
+                        </label>
+                        <span style="font-size: 0.74rem; color: var(--admin-text-mute); background: rgba(197, 168, 128, 0.1); padding: 3px 8px; border-radius: 10px; border: 1px solid rgba(197, 168, 128, 0.2);">MP4 / WebM / YouTube / Vimeo</span>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+                        <input type="text" id="testimonial-form-video" class="form-control" placeholder="Video URL (/uploads/videos/..., YouTube, Vimeo, or direct link)" style="flex: 1;">
+                        <div style="position: relative; overflow: hidden; display: inline-block;">
+                            <button type="button" class="btn btn-primary" id="btn-trigger-video-upload" style="height: 42px; white-space: nowrap; font-size: 0.85rem; padding: 0 14px; display: flex; align-items: center; gap: 6px;">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+                                Upload Video
+                            </button>
+                            <input type="file" id="testimonial-form-video-file" accept="video/mp4,video/webm,video/ogg,video/quicktime,video/*" style="position: absolute; font-size: 100px; right: 0; top: 0; opacity: 0; cursor: pointer;">
+                        </div>
+                        <button type="button" class="btn btn-secondary" id="btn-clear-testimonial-video" style="height: 42px; padding: 0 12px; display: none;" title="Remove video">✕</button>
+                    </div>
+
+                    <!-- Upload Progress -->
+                    <div id="video-upload-progress-container" style="display: none; margin: 10px 0;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 4px; color: var(--admin-text-mute);">
+                            <span id="video-upload-status-text">Uploading video...</span>
+                            <span id="video-upload-percent-text">0%</span>
+                        </div>
+                        <div style="height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 3px; overflow: hidden;">
+                            <div id="video-upload-progress-bar" style="width: 0%; height: 100%; background: var(--admin-primary); transition: width 0.2s ease;"></div>
+                        </div>
+                    </div>
+
+                    <div style="font-size: 0.75rem; color: var(--admin-text-mute); display: flex; justify-content: space-between;">
+                        <span>Upload an authentic video clip (MP4, WebM, MOV) or paste YouTube / Vimeo link.</span>
+                    </div>
+
+                    <!-- Video Optimization Status Pill -->
+                    <div id="video-optimization-badge" style="display: none; margin-top: 10px; padding: 10px 14px; background: rgba(43, 112, 74, 0.15); border: 1px solid rgba(43, 112, 74, 0.4); border-radius: 6px; font-size: 0.82rem; color: #3fe08c; align-items: center; justify-content: space-between; gap: 8px;">
+                        <span id="video-optimization-text" style="display: flex; align-items: center; gap: 6px;">
+                            <span>⚡</span> <span>Video Optimized</span>
+                        </span>
+                        <span style="font-size: 0.74rem; background: rgba(43, 112, 74, 0.25); padding: 2px 8px; border-radius: 10px; white-space: nowrap;">HD 1080p Web Stream</span>
+                    </div>
+
+                    <!-- Live Video Preview inside Modal -->
+                    <div id="modal-video-preview-wrapper" style="display: none; margin-top: 14px; border-radius: var(--admin-radius); overflow: hidden; border: 1px solid var(--admin-border); background: #000;">
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label for="testimonial-form-quote">Guest Quote / Review Text</label>
                     <textarea id="testimonial-form-quote" class="form-control" style="height: 100px; resize: vertical;" placeholder="What did they say about their stay?" required></textarea>
@@ -1666,6 +1722,28 @@
                     <button type="submit" class="btn btn-primary">Save Review</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Admin Video Viewer Modal -->
+    <div class="modal-overlay" id="modal-admin-video-viewer">
+        <div class="modal-card" style="max-width: 800px; width: 95%; padding: 24px; background: #0c120e; border: 1px solid var(--admin-border);">
+            <div class="modal-header" style="margin-bottom: 16px;">
+                <div>
+                    <h3 id="admin-video-modal-title" style="margin-bottom: 2px; color: var(--admin-primary); display: flex; align-items: center; gap: 8px;">
+                        <span>🎬</span> Guest Review Video
+                    </h3>
+                    <p id="admin-video-modal-author" style="font-size: 0.85rem; color: var(--admin-text-mute); margin: 0;"></p>
+                </div>
+                <button type="button" class="modal-close" onclick="closeAdminVideoModal()">&times;</button>
+            </div>
+            <div id="admin-video-container" style="position: relative; width: 100%; border-radius: var(--admin-radius); overflow: hidden; background: #000; min-height: 260px; display: flex; align-items: center; justify-content: center;">
+                <!-- Video player injected dynamically -->
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; gap: 12px; flex-wrap: wrap;">
+                <span id="admin-video-url-display" style="font-size: 0.78rem; color: var(--admin-text-mute); word-break: break-all; max-width: 70%;"></span>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="closeAdminVideoModal()">Close</button>
+            </div>
         </div>
     </div>
 
@@ -2666,15 +2744,23 @@
                 const ratingCount = Math.min(5, Math.max(1, parseInt(test.rating) || 5));
                 const starsHTML = '★'.repeat(ratingCount) + '☆'.repeat(5 - ratingCount);
                 const isPending = test.status === 'pending';
+                const videoUrl = test.video_url || test.video || '';
+                const hasVideo = Boolean(videoUrl && videoUrl.trim());
 
                 card.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; gap:8px;">
                         <div>
                             <span style="color: var(--admin-primary); letter-spacing: 2px; font-size: 1rem; display:block; margin-bottom:4px;">${starsHTML}</span>
-                            ${isPending 
-                                ? `<span style="background: rgba(234, 88, 12, 0.12); color: #c2410c; border: 1px solid rgba(234, 88, 12, 0.35); font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 12px; display:inline-flex; align-items:center; gap:4px;">⏳ Pending Approval</span>`
-                                : `<span style="background: rgba(22, 163, 74, 0.12); color: #15803d; border: 1px solid rgba(22, 163, 74, 0.35); font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 12px; display:inline-flex; align-items:center; gap:4px;">✓ Live on Website</span>`
-                            }
+                            <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                                ${isPending 
+                                    ? `<span style="background: rgba(234, 88, 12, 0.12); color: #c2410c; border: 1px solid rgba(234, 88, 12, 0.35); font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 12px; display:inline-flex; align-items:center; gap:4px;">⏳ Pending Approval</span>`
+                                    : `<span style="background: rgba(22, 163, 74, 0.12); color: #15803d; border: 1px solid rgba(22, 163, 74, 0.35); font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 12px; display:inline-flex; align-items:center; gap:4px;">✓ Live on Website</span>`
+                                }
+                                ${hasVideo 
+                                    ? `<span style="background: rgba(197, 168, 128, 0.15); color: var(--admin-primary); border: 1px solid rgba(197, 168, 128, 0.4); font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 12px; display:inline-flex; align-items:center; gap:4px;">🎬 Video</span>` 
+                                    : ''
+                                }
+                            </div>
                         </div>
                         <div style="display:flex; gap:6px; align-items:center;">
                             ${isPending
@@ -2686,6 +2772,20 @@
                         </div>
                     </div>
                     <p class="testimonial-admin-quote">"${test.quote}"</p>
+                    ${hasVideo ? `
+                        <div style="margin: 10px 0 14px; background: rgba(0, 0, 0, 0.45); border: 1px solid rgba(197, 168, 128, 0.25); border-radius: 6px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px; overflow: hidden;">
+                                <span style="font-size: 1.15rem; line-height: 1;">🎬</span>
+                                <div style="overflow: hidden;">
+                                    <div style="font-weight: 600; font-size: 0.8rem; color: var(--admin-primary);">Video Review Attached</div>
+                                    <div style="font-size: 0.72rem; color: var(--admin-text-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px;">${videoUrl}</div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-primary" onclick="openAdminVideoModal('${encodeURIComponent(videoUrl)}', '${encodeURIComponent(test.author)}')" style="padding: 4px 10px; font-size: 0.75rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px;">
+                                ▶ Play
+                            </button>
+                        </div>
+                    ` : ''}
                     <div class="testimonial-admin-author" style="border-top: 1px solid var(--admin-border); padding-top:12px; margin-top:auto;">
                         <img src="${test.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'}" alt="${test.author}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid var(--admin-border);">
                         <div>
@@ -2733,6 +2833,132 @@
             loadAllDatabaseViews();
         };
 
+        function parseVideoUrl(url) {
+            if (!url) return { type: 'none' };
+            const clean = url.trim();
+            const ytMatch = clean.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([a-zA-Z0-9_-]{11})/i);
+            if (ytMatch) return { type: 'youtube', id: ytMatch[1] };
+
+            const vimeoMatch = clean.match(/vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/(?:[^\/]*)\/videos\/|album\/(?:\d+)\/video\/|video\/|)(\d+)/i);
+            if (vimeoMatch) return { type: 'vimeo', id: vimeoMatch[1] };
+
+            return { type: 'direct', url: clean };
+        }
+
+        function updateTestimonialVideoPreview(url, meta) {
+            const previewWrapper = document.getElementById('modal-video-preview-wrapper');
+            const clearBtn = document.getElementById('btn-clear-testimonial-video');
+            const optBadge = document.getElementById('video-optimization-badge');
+            const optText = document.getElementById('video-optimization-text');
+            if (!previewWrapper) return;
+
+            const trimmed = (url || '').trim();
+            if (!trimmed) {
+                previewWrapper.style.display = 'none';
+                previewWrapper.innerHTML = '';
+                if (clearBtn) clearBtn.style.display = 'none';
+                if (optBadge) optBadge.style.display = 'none';
+                return;
+            }
+
+            if (clearBtn) clearBtn.style.display = 'inline-flex';
+            previewWrapper.style.display = 'block';
+
+            // Show optimization stats if available
+            if (optBadge) {
+                if (meta && meta.savedPercent > 0) {
+                    optBadge.style.display = 'flex';
+                    if (optText) {
+                        const origMb = (meta.originalSize / (1024 * 1024)).toFixed(1);
+                        const optMb = (meta.optimizedSize / (1024 * 1024)).toFixed(1);
+                        optText.innerHTML = `<span>⚡</span> <span><strong>Optimized:</strong> ${origMb} MB → ${optMb} MB (${meta.savedPercent}% smaller, high 1080p quality preserved)</span>`;
+                    }
+                } else if (trimmed.includes('_opt_')) {
+                    optBadge.style.display = 'flex';
+                    if (optText) {
+                        optText.innerHTML = `<span>⚡</span> <span><strong>Web Stream Optimized:</strong> High visual quality preserved</span>`;
+                    }
+                } else {
+                    optBadge.style.display = 'none';
+                }
+            }
+
+            const embed = parseVideoUrl(trimmed);
+            if (embed.type === 'youtube') {
+                previewWrapper.innerHTML = `
+                    <div style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden;">
+                        <iframe src="https://www.youtube.com/embed/${embed.id}?rel=0" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allowfullscreen></iframe>
+                    </div>
+                    <div style="padding:6px 12px; background:rgba(0,0,0,0.6); font-size:0.75rem; color:var(--admin-primary); display:flex; justify-content:space-between;">
+                        <span>YouTube Video Attached</span>
+                        <span>ID: ${embed.id}</span>
+                    </div>
+                `;
+            } else if (embed.type === 'vimeo') {
+                previewWrapper.innerHTML = `
+                    <div style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden;">
+                        <iframe src="https://player.vimeo.com/video/${embed.id}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allowfullscreen></iframe>
+                    </div>
+                    <div style="padding:6px 12px; background:rgba(0,0,0,0.6); font-size:0.75rem; color:var(--admin-primary);">
+                        <span>Vimeo Video Attached</span>
+                    </div>
+                `;
+            } else {
+                const isOptimized = trimmed.includes('_opt_');
+                previewWrapper.innerHTML = `
+                    <video src="${trimmed}" controls playsinline style="width:100%; max-height:230px; display:block; background:#000;"></video>
+                    <div style="padding:7px 12px; background:rgba(0,0,0,0.6); font-size:0.75rem; color:var(--admin-text-mute); display:flex; justify-content:space-between; align-items:center;">
+                        <span style="color:var(--admin-primary); display:flex; align-items:center; gap:6px;">
+                            <span>🎬</span> ${isOptimized ? 'Optimized Web Video (High Quality Stream)' : 'Direct Video Stream'}
+                        </span>
+                        <span style="overflow:hidden; text-overflow:ellipsis; max-width:240px; white-space:nowrap;">${trimmed}</span>
+                    </div>
+                `;
+            }
+        }
+
+        window.openAdminVideoModal = function(encodedUrl, encodedAuthor) {
+            const url = decodeURIComponent(encodedUrl || '');
+            const author = decodeURIComponent(encodedAuthor || 'Guest');
+            const container = document.getElementById('admin-video-container');
+            const authorEl = document.getElementById('admin-video-modal-author');
+            const urlEl = document.getElementById('admin-video-url-display');
+
+            if (!container) return;
+            if (authorEl) authorEl.textContent = `Authentic experience shared by ${author}`;
+            if (urlEl) urlEl.textContent = url;
+
+            const embed = parseVideoUrl(url);
+            if (embed.type === 'youtube') {
+                container.innerHTML = `
+                    <div style="position:relative; width:100%; padding-bottom:56.25%; height:0;">
+                        <iframe src="https://www.youtube.com/embed/${embed.id}?autoplay=1&rel=0" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allow="autoplay; fullscreen" allowfullscreen></iframe>
+                    </div>
+                `;
+            } else if (embed.type === 'vimeo') {
+                container.innerHTML = `
+                    <div style="position:relative; width:100%; padding-bottom:56.25%; height:0;">
+                        <iframe src="https://player.vimeo.com/video/${embed.id}?autoplay=1" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allow="autoplay; fullscreen" allowfullscreen></iframe>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <video src="${url}" controls autoplay playsinline style="width:100%; max-height:65vh; border-radius:var(--admin-radius); background:#000;"></video>
+                `;
+            }
+            openModal('modal-admin-video-viewer');
+        };
+
+        window.closeAdminVideoModal = function() {
+            const container = document.getElementById('admin-video-container');
+            if (container) {
+                const video = container.querySelector('video');
+                if (video) video.pause();
+                container.innerHTML = '';
+            }
+            closeModal('modal-admin-video-viewer');
+        };
+
         window.editTestimonial = function(id) {
             const testimonials = window.adminTestimonials || JSON.parse(localStorage.getItem('hotel_testimonials')) || [];
             const test = testimonials.find(t => t.id === id);
@@ -2748,6 +2974,11 @@
             if (document.getElementById('testimonial-form-status')) {
                 document.getElementById('testimonial-form-status').value = test.status || 'approved';
             }
+            const videoVal = test.video_url || test.video || '';
+            if (document.getElementById('testimonial-form-video')) {
+                document.getElementById('testimonial-form-video').value = videoVal;
+            }
+            updateTestimonialVideoPreview(videoVal);
 
             openModal('modal-testimonial');
         };
@@ -3025,6 +3256,19 @@
                 });
             }
 
+            const btnAddTestimonial = document.getElementById('btn-add-testimonial');
+            if (btnAddTestimonial) {
+                btnAddTestimonial.addEventListener('click', () => {
+                    document.getElementById('testimonial-form').reset();
+                    document.getElementById('testimonial-form-id').value = '';
+                    document.getElementById('testimonial-form-avatar').value = '';
+                    document.getElementById('testimonial-form-video').value = '';
+                    document.getElementById('testimonial-modal-title').textContent = "Add Guest Review / Upload Video";
+                    updateTestimonialVideoPreview('');
+                    openModal('modal-testimonial');
+                });
+            }
+
             const btnAddOfflineBooking = document.getElementById('btn-add-offline-booking');
             if (btnAddOfflineBooking) {
                 btnAddOfflineBooking.addEventListener('click', () => {
@@ -3085,6 +3329,108 @@
                             showToast("Guest avatar photo compressed and loaded.", "info");
                         });
                     }
+                });
+            }
+
+            // Guest Review Video File Upload & URL listeners
+            const testVideoFileInput = document.getElementById('testimonial-form-video-file');
+            const testVideoUrlInput = document.getElementById('testimonial-form-video');
+            const testVideoClearBtn = document.getElementById('btn-clear-testimonial-video');
+
+            if (testVideoFileInput) {
+                testVideoFileInput.addEventListener('change', async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    if (file.size > 85 * 1024 * 1024) {
+                        showToast("Video file exceeds 85MB. Please choose a smaller video or link via YouTube/Vimeo.", "danger");
+                        return;
+                    }
+
+                    const progressContainer = document.getElementById('video-upload-progress-container');
+                    const progressBar = document.getElementById('video-upload-progress-bar');
+                    const progressStatus = document.getElementById('video-upload-status-text');
+                    const progressPercent = document.getElementById('video-upload-percent-text');
+
+                    if (progressContainer) {
+                        progressContainer.style.display = 'block';
+                        progressBar.style.width = '20%';
+                        progressStatus.textContent = `Reading ${file.name} (${(file.size / (1024 * 1024)).toFixed(1)} MB)...`;
+                        progressPercent.textContent = '20%';
+                    }
+
+                    try {
+                        const reader = new FileReader();
+                        reader.onload = async (ev) => {
+                            const base64Data = ev.target.result;
+                            if (progressContainer) {
+                                progressBar.style.width = '55%';
+                                progressStatus.textContent = '⚡ Optimizing video: compressing file size & preserving crisp 1080p quality...';
+                                progressPercent.textContent = '55%';
+                            }
+
+                            const passcode = sessionStorage.getItem('admin_passcode') || '';
+                            const response = await fetch('/api/upload', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${passcode}`
+                                },
+                                body: JSON.stringify({
+                                    file: base64Data,
+                                    fileName: file.name,
+                                    folder: 'videos'
+                                })
+                            });
+
+                            if (response.ok) {
+                                const result = await response.json();
+                                if (progressContainer) {
+                                    progressBar.style.width = '100%';
+                                    progressStatus.textContent = result.savedPercent > 0 
+                                        ? `✓ Video Optimized (${result.savedPercent}% smaller, 1080p quality intact)!`
+                                        : '✓ Video Upload Complete!';
+                                    progressPercent.textContent = '100%';
+                                    setTimeout(() => { progressContainer.style.display = 'none'; }, 2500);
+                                }
+                                testVideoUrlInput.value = result.url;
+                                updateTestimonialVideoPreview(result.url, result);
+                                if (result.savedPercent > 0) {
+                                    const origMb = (result.originalSize / (1024 * 1024)).toFixed(1);
+                                    const optMb = (result.optimizedSize / (1024 * 1024)).toFixed(1);
+                                    showToast(`Video optimized: ${origMb}MB → ${optMb}MB (${result.savedPercent}% smaller) with high visual quality preserved!`, "success");
+                                } else {
+                                    showToast("Guest review video uploaded successfully!", "success");
+                                }
+                            } else {
+                                const err = await response.json().catch(() => ({}));
+                                if (progressContainer) progressContainer.style.display = 'none';
+                                showToast(`Upload notice: ${err.error || 'Server storage note'}. Saved for this session.`, "warning");
+                                if (file.size < 4 * 1024 * 1024) {
+                                    testVideoUrlInput.value = base64Data;
+                                    updateTestimonialVideoPreview(base64Data);
+                                }
+                            }
+                        };
+                        reader.readAsDataURL(file);
+                    } catch (err) {
+                        if (progressContainer) progressContainer.style.display = 'none';
+                        showToast("Failed to process video: " + err.message, "danger");
+                    }
+                });
+            }
+
+            if (testVideoUrlInput) {
+                testVideoUrlInput.addEventListener('input', (e) => {
+                    updateTestimonialVideoPreview(e.target.value);
+                });
+            }
+
+            if (testVideoClearBtn) {
+                testVideoClearBtn.addEventListener('click', () => {
+                    testVideoUrlInput.value = '';
+                    if (testVideoFileInput) testVideoFileInput.value = '';
+                    updateTestimonialVideoPreview('');
                 });
             }
 
@@ -3514,12 +3860,13 @@
                 const id = document.getElementById('testimonial-form-id').value || 'test_' + Date.now();
                 const author = document.getElementById('testimonial-form-author').value;
                 const location = document.getElementById('testimonial-form-location').value;
-                const avatar = document.getElementById('testimonial-form-avatar').value;
+                const avatar = document.getElementById('testimonial-form-avatar').value || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
                 const quote = document.getElementById('testimonial-form-quote').value;
                 const rating = parseInt(document.getElementById('testimonial-form-rating').value) || 5;
                 const status = document.getElementById('testimonial-form-status') ? document.getElementById('testimonial-form-status').value : 'approved';
+                const video_url = (document.getElementById('testimonial-form-video') ? document.getElementById('testimonial-form-video').value : '').trim();
 
-                const testimonialData = { id, author, location, avatar, quote, rating, status };
+                const testimonialData = { id, author, location, avatar, quote, rating, status, video_url };
                 const passcode = sessionStorage.getItem('admin_passcode') || '';
 
                 // Optimistically update local state immediately

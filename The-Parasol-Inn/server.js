@@ -15,6 +15,8 @@ import authHandler from './api/auth.js';
 import backupHandler from './api/backup.js';
 import dbInitHandler from './api/db-init.js';
 import teamHandler from './api/team.js';
+import uploadHandler from './api/upload.js';
+import fs from 'fs';
 
 import { ensureTablesExist } from './api/_db.js';
 
@@ -23,13 +25,19 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Ensure uploads folder exists
+const uploadsVideosDir = path.join(__dirname, 'uploads', 'videos');
+if (!fs.existsSync(uploadsVideosDir)) {
+  fs.mkdirSync(uploadsVideosDir, { recursive: true });
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Security & Parsing Middlewares
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -73,21 +81,26 @@ app.all('/api/settings', cachedRoute((req, res) => settingsHandler(req, res), 's
 app.all('/api/team', cachedRoute((req, res) => teamHandler(req, res), 'team'));
 app.all('/api/enquiries', (req, res) => enquiriesHandler(req, res));
 app.all('/api/auth', (req, res) => authHandler(req, res));
+app.all('/api/upload', (req, res) => uploadHandler(req, res));
 app.all('/api/backup', (req, res) => backupHandler(req, res));
 app.all('/api/db-init', (req, res) => {
   apiCache.clear();
   return dbInitHandler(req, res);
 });
 
-// Serve static assets with caching headers (HTML revalidated, static assets cached 1 day)
+// Explicit static serving for uploaded videos/media
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Serve static assets with no-cache for HTML, CSS, and JS so updates reflect immediately
 app.use(express.static(__dirname, {
   extensions: ['html'],
-  maxAge: '1d',
   setHeaders: (res, filePath) => {
-    if (filePath.endsWith('.html')) {
-      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+    if (filePath.endsWith('.html') || filePath.endsWith('.css') || filePath.endsWith('.js')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
     } else {
-      res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
     }
   }
 }));

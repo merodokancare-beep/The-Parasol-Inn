@@ -128,6 +128,7 @@ export async function ensureTablesExist() {
       avatar TEXT,
       rating INTEGER DEFAULT 5,
       status TEXT DEFAULT 'approved',
+      video_url TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `;
@@ -167,6 +168,7 @@ export async function ensureTablesExist() {
   try {
     await sql`ALTER TABLE testimonials ADD COLUMN IF NOT EXISTS rating INTEGER DEFAULT 5`;
     await sql`ALTER TABLE testimonials ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'approved'`;
+    await sql`ALTER TABLE testimonials ADD COLUMN IF NOT EXISTS video_url TEXT`;
     await sql`ALTER TABLE testimonials ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`;
     await sql`ALTER TABLE settings ADD COLUMN IF NOT EXISTS testimonials_title TEXT`;
     await sql`ALTER TABLE settings ADD COLUMN IF NOT EXISTS testimonials_subtitle TEXT`;

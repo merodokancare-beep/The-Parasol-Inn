@@ -182,7 +182,8 @@ const DEFAULT_TESTIMONIALS = [
         author: "Rajesh Sharma",
         location: "New Delhi",
         avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80",
-        rating: 5
+        rating: 5,
+        video_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
     },
     {
         id: "test2",
@@ -190,7 +191,8 @@ const DEFAULT_TESTIMONIALS = [
         author: "Sarah Jenkins",
         location: "United Kingdom",
         avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80",
-        rating: 5
+        rating: 5,
+        video_url: ""
     },
     {
         id: "test3",
@@ -198,7 +200,8 @@ const DEFAULT_TESTIMONIALS = [
         author: "Anirudh Roy",
         location: "Kolkata",
         avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80",
-        rating: 5
+        rating: 5,
+        video_url: ""
     }
 ];
 
@@ -586,30 +589,8 @@ function renderDynamicContent() {
 
     const testimonialSlider = document.getElementById('testimonial-slider');
     if (testimonialSlider) {
-        testimonialSlider.innerHTML = '';
         const approvedTestimonials = (testimonials || []).filter(test => test.status === 'approved' || !test.status);
-        if (approvedTestimonials && approvedTestimonials.length > 0) {
-            approvedTestimonials.forEach(test => {
-                const slide = document.createElement('div');
-                slide.className = 'testimonial-slide';
-                const ratingCount = Math.min(5, Math.max(1, parseInt(test.rating) || 5));
-                const starsHTML = '★'.repeat(ratingCount) + '☆'.repeat(5 - ratingCount);
-                slide.innerHTML = `
-                    <div class="testimonial-stars" style="color: #c5a880; font-size: 1.15rem; margin-bottom: 12px; letter-spacing: 4px;">${starsHTML}</div>
-                    <svg class="quote-icon" viewBox="0 0 24 24"><path d="M13 14.725c0-5.141 3.892-10.519 10-11.725l.944 2c-4.437 1.286-6.944 4.248-6.944 6.725h6v9h-10v-6zm-13 0c0-5.141 3.892-10.519 10-11.725l.944 2c-4.437 1.286-6.944 4.248-6.944 6.725h6v9h-10v-6z" fill="currentColor"/></svg>
-                    <p>"${test.quote}"</p>
-                    <div class="testimonial-author">
-                        <img src="${test.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'}" alt="${test.author}">
-                        <h4>${test.author}</h4>
-                        <span>${test.location || 'Guest'}</span>
-                    </div>
-                `;
-                testimonialSlider.appendChild(slide);
-            });
-            initTestimonialSlider();
-        } else {
-            testimonialSlider.innerHTML = `<div class="testimonial-slide"><p style="color:var(--text-secondary); font-style:normal;">No verified guest reviews yet. Be the first to share your experience!</p></div>`;
-        }
+        setupTestimonialsShowcase(approvedTestimonials.length > 0 ? approvedTestimonials : DEFAULT_TESTIMONIALS);
     }
 
     // 6. Render Dynamic Gallery Grid (gallery.html)
@@ -928,71 +909,297 @@ function initHeroSlider() {
 }
 
 /* ==========================================
-   TESTIMONIALS SLIDER
+   TESTIMONIALS 3-CARD SHOWCASE ENGINE
    ========================================== */
-let testimonialSlideTimer = null;
-function initTestimonialSlider() {
-    const slider = document.querySelector('.testimonial-slider');
-    const slides = document.querySelectorAll('.testimonial-slide');
-    const dotsContainer = document.querySelector('.slider-dots');
-    
-    if (testimonialSlideTimer) {
-        clearInterval(testimonialSlideTimer);
-        testimonialSlideTimer = null;
+let testimonialAutoTimer = null;
+let currentShowcaseIndex = 0;
+
+function setupTestimonialsShowcase(testimonialsList) {
+    const track = document.getElementById('testimonial-slider');
+    const dotsContainer = document.getElementById('testimonial-dots');
+    const prevBtn = document.getElementById('btn-testimonial-prev');
+    const nextBtn = document.getElementById('btn-testimonial-next');
+    const viewport = document.getElementById('testimonial-viewport');
+
+    if (!track) return;
+
+    if (testimonialAutoTimer) {
+        clearInterval(testimonialAutoTimer);
+        testimonialAutoTimer = null;
     }
 
-    if (!slider || slides.length === 0) return;
-
-    let currentIndex = 0;
-    const intervalTime = 6000;
-
-    // Clear previous dots if any (e.g. from dynamic re-render)
-    if (dotsContainer) dotsContainer.innerHTML = '';
-
-    if (slides.length <= 1) {
-        slider.style.transform = 'translateX(0)';
+    const approved = (testimonialsList || []).filter(t => t.status === 'approved' || !t.status);
+    if (!approved || approved.length === 0) {
+        track.innerHTML = `
+            <div class="testimonial-card is-center" style="margin: 0 auto; max-width: 480px; text-align: center;">
+                <p style="color:var(--text-secondary); font-style: normal; margin: 15px 0;">No verified guest reviews yet. Be the first to share your experience!</p>
+            </div>
+        `;
+        if (dotsContainer) dotsContainer.innerHTML = '';
+        if (prevBtn) prevBtn.style.display = 'none';
+        if (nextBtn) nextBtn.style.display = 'none';
         return;
     }
 
-    // Create dots
-    slides.forEach((_, idx) => {
-        const dot = document.createElement('button');
-        dot.classList.add('slider-dot');
-        if (idx === 0) dot.classList.add('active');
-        dot.setAttribute('aria-label', `Go to slide ${idx + 1}`);
-        dot.addEventListener('click', () => {
-            goToSlide(idx);
-            resetTimer();
+    const N = approved.length;
+
+    // Helper to build a card element
+    function createCardElement(review, realIndex) {
+        const card = document.createElement('div');
+        card.className = 'testimonial-card';
+        card.dataset.realIndex = realIndex;
+
+        const rating = Math.min(5, Math.max(1, parseInt(review.rating) || 5));
+        const starsHTML = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+        const videoUrl = (review.video_url || review.video || '').trim();
+        const hasVideo = Boolean(videoUrl);
+
+        card.innerHTML = `
+            <div class="testimonial-card-top">
+                <img class="testimonial-card-avatar" src="${review.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'}" alt="${review.author}" loading="lazy">
+                <h3 class="testimonial-card-author">${review.author}</h3>
+                <p class="testimonial-card-role">${review.location || 'Verified Guest'}</p>
+                <div class="testimonial-card-stars" aria-label="${rating} out of 5 stars">${starsHTML}</div>
+            </div>
+            <div class="testimonial-card-body">
+                <p class="testimonial-card-text">"${review.quote}"</p>
+                ${hasVideo ? `
+                    <div class="testimonial-card-video-wrap">
+                        <button type="button" class="btn-card-video-review" onclick="event.stopPropagation(); openGuestVideoModal('${encodeURIComponent(videoUrl)}', '${encodeURIComponent(review.author)}', '${encodeURIComponent(review.location || '')}')">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                            Watch Video Review
+                        </button>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        return card;
+    }
+
+    function getCardsPerView() {
+        if (window.innerWidth >= 992) return 3;
+        if (window.innerWidth >= 640) return 2;
+        return 1;
+    }
+
+    if (N === 1) {
+        track.innerHTML = '';
+        const card = createCardElement(approved[0], 0);
+        card.classList.add('is-center');
+        track.appendChild(card);
+        if (dotsContainer) dotsContainer.innerHTML = '';
+        if (prevBtn) prevBtn.style.display = 'none';
+        if (nextBtn) nextBtn.style.display = 'none';
+        return;
+    }
+
+    if (prevBtn) prevBtn.style.display = 'flex';
+    if (nextBtn) nextBtn.style.display = 'flex';
+
+    // Populate dots
+    if (dotsContainer) {
+        dotsContainer.innerHTML = '';
+        approved.forEach((_, idx) => {
+            const dot = document.createElement('button');
+            dot.className = `slider-dot ${idx === 0 ? 'active' : ''}`;
+            dot.setAttribute('aria-label', `View review ${idx + 1}`);
+            dot.addEventListener('click', () => {
+                goToSlide(idx);
+                restartAutoSlide();
+            });
+            dotsContainer.appendChild(dot);
         });
-        if (dotsContainer) dotsContainer.appendChild(dot);
+    }
+
+    const repeatCount = N === 2 ? 4 : 3;
+    const startIndexOffset = N === 2 ? 2 : N;
+    let virtualIndex = startIndexOffset;
+
+    track.innerHTML = '';
+    const allTrackCards = [];
+
+    for (let r = 0; r < repeatCount; r++) {
+        for (let i = 0; i < N; i++) {
+            const card = createCardElement(approved[i], i);
+            const trackIdx = r * N + i;
+            card.dataset.trackIndex = trackIdx;
+            
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('button') || e.target.closest('a')) return;
+                const clickedIdx = parseInt(card.dataset.trackIndex);
+                if (clickedIdx === virtualIndex - 1) {
+                    prevSlide();
+                    restartAutoSlide();
+                } else if (clickedIdx === virtualIndex + 1) {
+                    nextSlide();
+                    restartAutoSlide();
+                }
+            });
+
+            track.appendChild(card);
+            allTrackCards.push(card);
+        }
+    }
+
+    let isAnimating = false;
+
+    function updateTrackPosition(animate = true) {
+        if (!viewport) return;
+        const cpv = getCardsPerView();
+        const gap = 26;
+        const vpWidth = viewport.offsetWidth || 1100;
+        
+        let cardWidth;
+        if (cpv === 3) {
+            cardWidth = (vpWidth - 2 * gap) / 3;
+        } else if (cpv === 2) {
+            cardWidth = (vpWidth - gap) / 2;
+        } else {
+            cardWidth = vpWidth;
+        }
+
+        allTrackCards.forEach(c => {
+            c.style.flex = `0 0 ${cardWidth}px`;
+            c.style.maxWidth = `${cardWidth}px`;
+        });
+
+        let offset;
+        if (cpv === 3) {
+            offset = -((virtualIndex - 1) * (cardWidth + gap));
+        } else {
+            offset = -(virtualIndex * (cardWidth + gap));
+        }
+
+        if (animate) {
+            track.style.transition = 'transform 0.55s cubic-bezier(0.22, 1, 0.36, 1)';
+        } else {
+            track.style.transition = 'none';
+        }
+        track.style.transform = `translateX(${offset}px)`;
+
+        allTrackCards.forEach((c, idx) => {
+            c.classList.remove('is-center', 'is-side');
+            if (idx === virtualIndex) {
+                c.classList.add('is-center');
+            } else if (cpv === 3 && (idx === virtualIndex - 1 || idx === virtualIndex + 1)) {
+                c.classList.add('is-side');
+            } else if (cpv === 2 && idx === virtualIndex + 1) {
+                c.classList.add('is-side');
+            }
+        });
+
+        const realIdx = ((virtualIndex % N) + N) % N;
+        const dots = dotsContainer ? dotsContainer.querySelectorAll('.slider-dot') : [];
+        dots.forEach((dot, idx) => {
+            dot.classList.toggle('active', idx === realIdx);
+        });
+    }
+
+    track.addEventListener('transitionend', () => {
+        isAnimating = false;
+        const total = allTrackCards.length;
+        if (virtualIndex >= total - N) {
+            virtualIndex -= N;
+            updateTrackPosition(false);
+        } else if (virtualIndex < N) {
+            virtualIndex += N;
+            updateTrackPosition(false);
+        }
     });
 
-    const dots = document.querySelectorAll('.slider-dot');
-
-    function goToSlide(index) {
-        currentIndex = index;
-        slider.style.transform = `translateX(-${currentIndex * 100}%)`;
-        dots.forEach((dot, idx) => {
-            dot.classList.toggle('active', idx === currentIndex);
-        });
+    function nextSlide() {
+        if (isAnimating) return;
+        isAnimating = true;
+        virtualIndex++;
+        updateTrackPosition(true);
     }
 
-    function autoSlide() {
-        if (slides.length <= 1) return;
-        const nextIndex = (currentIndex + 1) % slides.length;
-        goToSlide(nextIndex);
+    function prevSlide() {
+        if (isAnimating) return;
+        isAnimating = true;
+        virtualIndex--;
+        updateTrackPosition(true);
     }
 
-    function startTimer() {
-        testimonialSlideTimer = setInterval(autoSlide, intervalTime);
+    function goToSlide(targetRealIdx) {
+        if (isAnimating) return;
+        isAnimating = true;
+        const currentRealIdx = ((virtualIndex % N) + N) % N;
+        let diff = targetRealIdx - currentRealIdx;
+        if (diff > N / 2) diff -= N;
+        if (diff < -N / 2) diff += N;
+        virtualIndex += diff;
+        updateTrackPosition(true);
     }
 
-    function resetTimer() {
-        clearInterval(testimonialSlideTimer);
-        startTimer();
+    if (prevBtn) {
+        prevBtn.onclick = (e) => {
+            e.preventDefault();
+            prevSlide();
+            restartAutoSlide();
+        };
     }
 
-    startTimer();
+    if (nextBtn) {
+        nextBtn.onclick = (e) => {
+            e.preventDefault();
+            nextSlide();
+            restartAutoSlide();
+        };
+    }
+
+    // Touch swipe support
+    let touchStartX = 0;
+    viewport.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+        stopAutoSlide();
+    }, { passive: true });
+
+    viewport.addEventListener('touchend', (e) => {
+        const touchEndX = e.changedTouches[0].clientX;
+        const swipeDist = touchEndX - touchStartX;
+        if (swipeDist > 45) {
+            prevSlide();
+        } else if (swipeDist < -45) {
+            nextSlide();
+        }
+        startAutoSlide();
+    }, { passive: true });
+
+    // Hover pauses auto-slide
+    viewport.addEventListener('mouseenter', stopAutoSlide);
+    viewport.addEventListener('mouseleave', startAutoSlide);
+
+    function startAutoSlide() {
+        if (testimonialAutoTimer) clearInterval(testimonialAutoTimer);
+        testimonialAutoTimer = setInterval(nextSlide, 5500);
+    }
+
+    function stopAutoSlide() {
+        if (testimonialAutoTimer) {
+            clearInterval(testimonialAutoTimer);
+            testimonialAutoTimer = null;
+        }
+    }
+
+    function restartAutoSlide() {
+        stopAutoSlide();
+        startAutoSlide();
+    }
+
+    window.addEventListener('resize', () => {
+        updateTrackPosition(false);
+    });
+
+    requestAnimationFrame(() => {
+        updateTrackPosition(false);
+        startAutoSlide();
+    });
+}
+
+function initTestimonialSlider() {
+    const list = window.cachedTestimonials || DEFAULT_TESTIMONIALS;
+    setupTestimonialsShowcase(list);
 }
 
 /* ==========================================
@@ -1787,3 +1994,70 @@ function initCustomerReviewModal() {
     }
 }
 
+
+/* ==========================================
+   GUEST VIDEO REVIEW PLAYER MODAL HANDLER
+   ========================================== */
+window.openGuestVideoModal = function(encodedUrl, encodedAuthor, encodedLoc) {
+    const url = decodeURIComponent(encodedUrl || '');
+    const author = decodeURIComponent(encodedAuthor || 'Guest Review');
+    const loc = decodeURIComponent(encodedLoc || '');
+
+    const modal = document.getElementById('modal-guest-video-player');
+    const authorEl = document.getElementById('guest-video-author');
+    const locEl = document.getElementById('guest-video-location');
+    const mediaContainer = document.getElementById('guest-video-media-container');
+
+    if (!modal || !mediaContainer) return;
+
+    if (testimonialAutoTimer) {
+        clearInterval(testimonialAutoTimer);
+        testimonialAutoTimer = null;
+    }
+
+    if (authorEl) authorEl.textContent = author;
+    if (locEl) locEl.textContent = loc;
+
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+        let ytId = '';
+        if (url.includes('youtu.be/')) ytId = url.split('youtu.be/')[1].split('?')[0];
+        else if (url.includes('v=')) ytId = url.split('v=')[1].split('&')[0];
+        mediaContainer.innerHTML = `<iframe width="100%" height="420" src="https://www.youtube.com/embed/${ytId}?autoplay=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius:8px; border:none;"></iframe>`;
+    } else {
+        mediaContainer.innerHTML = `<video controls autoplay playsinline style="max-width:100%; max-height:480px; width:100%; border-radius:8px; outline:none; background:#000;"><source src="${url}" type="video/mp4">Your browser does not support the video tag.</video>`;
+    }
+
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+};
+
+window.closeGuestVideoModal = function() {
+    const modal = document.getElementById('modal-guest-video-player');
+    const mediaContainer = document.getElementById('guest-video-media-container');
+    if (!modal) return;
+    if (mediaContainer) mediaContainer.innerHTML = '';
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+};
+
+// Wire up video modal event listeners on page load
+document.addEventListener('DOMContentLoaded', () => {
+    const closeBtn = document.getElementById('btn-close-guest-video');
+    const modal = document.getElementById('modal-guest-video-player');
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', window.closeGuestVideoModal);
+    }
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                window.closeGuestVideoModal();
+            }
+        });
+    }
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal && modal.style.display === 'flex') {
+            window.closeGuestVideoModal();
+        }
+    });
+});

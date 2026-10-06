@@ -153,14 +153,21 @@ export default async function handler(req, res) {
         for (const test of testimonials) {
           try {
             await sql`
-              INSERT INTO testimonials (id, quote, author, location, avatar, rating)
-              VALUES (${test.id}, ${test.quote}, ${test.author}, ${test.location}, ${test.avatar}, ${test.rating || 5})
+              INSERT INTO testimonials (id, quote, author, location, avatar, rating, status, video_url)
+              VALUES (${test.id}, ${test.quote}, ${test.author}, ${test.location}, ${test.avatar}, ${test.rating || 5}, ${test.status || 'approved'}, ${test.video_url || test.video || ''})
             `;
           } catch (tErr) {
-            await sql`
-              INSERT INTO testimonials (id, quote, author, location, avatar)
-              VALUES (${test.id}, ${test.quote}, ${test.author}, ${test.location}, ${test.avatar})
-            `;
+            try {
+              await sql`
+                INSERT INTO testimonials (id, quote, author, location, avatar, rating)
+                VALUES (${test.id}, ${test.quote}, ${test.author}, ${test.location}, ${test.avatar}, ${test.rating || 5})
+              `;
+            } catch (tErr2) {
+              await sql`
+                INSERT INTO testimonials (id, quote, author, location, avatar)
+                VALUES (${test.id}, ${test.quote}, ${test.author}, ${test.location}, ${test.avatar})
+              `;
+            }
           }
         }
       }

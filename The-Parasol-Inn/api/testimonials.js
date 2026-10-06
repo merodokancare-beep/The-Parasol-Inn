@@ -58,7 +58,7 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, offline: true, message: `Status updated to ${req.body.status}.` });
       }
 
-      const { id, quote, author, location, avatar, rating, status } = req.body || {};
+      const { id, quote, author, location, avatar, rating, status, video_url } = req.body || {};
       const existIdx = memoryTestimonials.findIndex(t => t.id === id);
       const updatedItem = {
         id: id || `test_${Date.now()}`,
@@ -67,7 +67,8 @@ export default async function handler(req, res) {
         location: location || 'Guest',
         avatar: avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
         rating: parseInt(rating) || 5,
-        status: status === 'pending' ? 'pending' : 'approved'
+        status: status === 'pending' ? 'pending' : 'approved',
+        video_url: video_url || ''
       };
       if (existIdx >= 0) {
         memoryTestimonials[existIdx] = updatedItem;
@@ -201,43 +202,60 @@ export default async function handler(req, res) {
       }
     }
 
-    const { id, quote, author, location, avatar, rating, status } = req.body || {};
+    const { id, quote, author, location, avatar, rating, status, video_url } = req.body || {};
     if (!id || !quote || !author) {
       return res.status(400).json({ error: 'ID, Quote, and Author are required.' });
     }
 
     const ratingNum = Math.min(5, Math.max(1, parseInt(rating) || 5));
     const targetStatus = status === 'pending' ? 'pending' : 'approved';
+    const cleanVideoUrl = video_url ? String(video_url).trim() : '';
 
     try {
       await sql`
-        INSERT INTO testimonials (id, quote, author, location, avatar, rating, status)
-        VALUES (${id}, ${quote}, ${author}, ${location || ''}, ${avatar || ''}, ${ratingNum}, ${targetStatus})
+        INSERT INTO testimonials (id, quote, author, location, avatar, rating, status, video_url)
+        VALUES (${id}, ${quote}, ${author}, ${location || ''}, ${avatar || ''}, ${ratingNum}, ${targetStatus}, ${cleanVideoUrl})
         ON CONFLICT (id) DO UPDATE SET
           quote = EXCLUDED.quote,
           author = EXCLUDED.author,
           location = EXCLUDED.location,
           avatar = EXCLUDED.avatar,
           rating = EXCLUDED.rating,
-          status = EXCLUDED.status
+          status = EXCLUDED.status,
+          video_url = EXCLUDED.video_url
       `;
       return res.status(200).json({ success: true, message: 'Testimonial saved successfully.' });
     } catch (error) {
       try {
         await sql`
-          INSERT INTO testimonials (id, quote, author, location, avatar, rating)
-          VALUES (${id}, ${quote}, ${author}, ${location || ''}, ${avatar || ''}, ${ratingNum})
+          INSERT INTO testimonials (id, quote, author, location, avatar, rating, status)
+          VALUES (${id}, ${quote}, ${author}, ${location || ''}, ${avatar || ''}, ${ratingNum}, ${targetStatus})
           ON CONFLICT (id) DO UPDATE SET
             quote = EXCLUDED.quote,
             author = EXCLUDED.author,
             location = EXCLUDED.location,
             avatar = EXCLUDED.avatar,
-            rating = EXCLUDED.rating
+            rating = EXCLUDED.rating,
+            status = EXCLUDED.status
         `;
         return res.status(200).json({ success: true, message: 'Testimonial saved successfully.' });
       } catch (err2) {
-        console.error('Error saving testimonial:', err2);
-        return res.status(500).json({ error: err2.message });
+        try {
+          await sql`
+            INSERT INTO testimonials (id, quote, author, location, avatar, rating)
+            VALUES (${id}, ${quote}, ${author}, ${location || ''}, ${avatar || ''}, ${ratingNum})
+            ON CONFLICT (id) DO UPDATE SET
+              quote = EXCLUDED.quote,
+              author = EXCLUDED.author,
+              location = EXCLUDED.location,
+              avatar = EXCLUDED.avatar,
+              rating = EXCLUDED.rating
+          `;
+          return res.status(200).json({ success: true, message: 'Testimonial saved successfully.' });
+        } catch (err3) {
+          console.error('Error saving testimonial:', err3);
+          return res.status(500).json({ error: err3.message });
+        }
       }
     }
   }

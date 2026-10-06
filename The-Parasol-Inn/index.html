@@ -10,7 +10,172 @@
         <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=20261006_3">
+    <style id="testimonials-card-system">
+        .testimonials-section {
+            background-color: #f8fafc !important;
+            padding: 85px 0 95px !important;
+            position: relative;
+            overflow: hidden;
+        }
+        body.dark-mode .testimonials-section {
+            background-color: #0c1510 !important;
+        }
+        .testimonial-showcase-wrapper {
+            position: relative;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 10px 52px;
+        }
+        .testimonial-viewport {
+            width: 100%;
+            overflow: hidden;
+            padding: 15px 0 25px;
+        }
+        .testimonial-cards-track {
+            display: flex;
+            gap: 28px;
+            align-items: stretch;
+            transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .testimonial-card {
+            flex: 0 0 calc((100% - 56px) / 3);
+            min-width: 0;
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 38px 28px 32px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body.dark-mode .testimonial-card {
+            background: #16241c !important;
+            border-color: rgba(197, 168, 128, 0.18) !important;
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4) !important;
+        }
+        .testimonial-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 14px 35px rgba(0, 0, 0, 0.12);
+        }
+        .testimonial-card-top {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        .testimonial-card-avatar {
+            width: 88px;
+            height: 88px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin: 0 auto 16px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+            display: block;
+        }
+        .testimonial-card-author {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1a2035;
+            margin: 0 0 5px;
+            font-family: var(--font-heading);
+        }
+        body.dark-mode .testimonial-card-author {
+            color: #ffffff !important;
+        }
+        .testimonial-card-role {
+            font-size: 0.88rem;
+            color: #64748b;
+            margin: 0 0 14px;
+            font-weight: 500;
+        }
+        body.dark-mode .testimonial-card-role {
+            color: #94a3b8 !important;
+        }
+        .testimonial-card-stars {
+            color: #f59e0b;
+            font-size: 1.2rem;
+            letter-spacing: 4px;
+            margin: 0 auto 18px;
+            display: inline-block;
+        }
+        .testimonial-card-body {
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .testimonial-card-text {
+            font-size: 0.95rem;
+            line-height: 1.68;
+            color: #475569;
+            margin: 0 0 16px;
+        }
+        body.dark-mode .testimonial-card-text {
+            color: #cbd5e1 !important;
+        }
+        .testimonial-card-video-wrap {
+            margin-top: 10px;
+        }
+        .btn-card-video-review {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 8px 18px;
+            border-radius: 25px;
+            background: rgba(197, 168, 128, 0.14);
+            color: var(--accent-color);
+            border: 1px solid rgba(197, 168, 128, 0.45);
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+        .btn-card-video-review:hover {
+            background: var(--accent-color);
+            color: #ffffff;
+            transform: translateY(-2px);
+        }
+        .testimonial-nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            color: var(--accent-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+        .testimonial-nav-btn.prev { left: 0; }
+        .testimonial-nav-btn.next { right: 0; }
+        .testimonial-nav-btn:hover {
+            background: var(--accent-color);
+            color: #ffffff;
+        }
+        @media (max-width: 991px) {
+            .testimonial-card { flex: 0 0 calc((100% - 24px) / 2); }
+            .testimonial-showcase-wrapper { padding: 10px 42px; }
+        }
+        @media (max-width: 640px) {
+            .testimonial-card { flex: 0 0 100%; }
+            .testimonial-showcase-wrapper { padding: 5px 30px; }
+            .testimonial-nav-btn.prev { left: -6px; }
+            .testimonial-nav-btn.next { right: -6px; }
+        }
+    </style>
 </head>
 <body>
 
@@ -145,7 +310,6 @@
                 <div class="welcome-img-card welcome-img-card-2">
                     <img src="https://images.unsplash.com/photo-1589308078059-be1415eab4c3?auto=format&fit=crop&w=800&q=80" alt="Resort Lounge Sitting Area">
                 </div>
-            </div>
         </div>
     </section>
 
@@ -264,54 +428,76 @@
                 <h2 id="testimonials-title">Whispers from the Hills</h2>
             </div>
             
-            <div class="testimonial-container">
-                <div class="testimonial-slider" id="testimonial-slider">
-                    <!-- Slide 1 -->
-                    <div class="testimonial-slide">
-                        <svg class="quote-icon" viewBox="0 0 24 24"><path d="M13 14.725c0-5.141 3.892-10.519 10-11.725l.944 2c-4.437 1.286-6.944 4.248-6.944 6.725h6v9h-10v-6zm-13 0c0-5.141 3.892-10.519 10-11.725l.944 2c-4.437 1.286-6.944 4.248-6.944 6.725h6v9h-10v-6z"/></svg>
-                        <p>"Absolutely breathtaking! Waking up to Kanchenjunga directly from our Premium Balcony Suite was an experience of a lifetime. The staff was incredibly warm and served authentic Sikkimese tea upon arrival. Highly recommended!"</p>
-                        <div class="testimonial-author">
-                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80" alt="Rajesh Sharma">
-                            <h4>Rajesh Sharma</h4>
-                            <span>New Delhi</span>
-                        </div>
-                    </div>
-                    
-                    <!-- Slide 2 -->
-                    <div class="testimonial-slide">
-                        <svg class="quote-icon" viewBox="0 0 24 24"><path d="M13 14.725c0-5.141 3.892-10.519 10-11.725l.944 2c-4.437 1.286-6.944 4.248-6.944 6.725h6v9h-10v-6zm-13 0c0-5.141 3.892-10.519 10-11.725l.944 2c-4.437 1.286-6.944 4.248-6.944 6.725h6v9h-10v-6z"/></svg>
-                        <p>"The Tibet Wellness Spa here is pure bliss. We visited Sikkim for an anniversary trek, and ending our trip at the resort was the best decision. The wood fire lounge and dynamic dining were first-class."</p>
-                        <div class="testimonial-author">
-                            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80" alt="Sarah & Peter">
-                            <h4>Sarah Jenkins</h4>
-                            <span>United Kingdom</span>
-                        </div>
-                    </div>
-                    
-                    <!-- Slide 3 -->
-                    <div class="testimonial-slide">
-                        <svg class="quote-icon" viewBox="0 0 24 24"><path d="M13 14.725c0-5.141 3.892-10.519 10-11.725l.944 2c-4.437 1.286-6.944 4.248-6.944 6.725h6v9h-10v-6zm-13 0c0-5.141 3.892-10.519 10-11.725l.944 2c-4.437 1.286-6.944 4.248-6.944 6.725h6v9h-10v-6z"/></svg>
-                        <p>"Superb hospitality and attention to detail. Fast Wi-Fi was useful for checking on work, and the parking arrangements were secure. The restaurant's traditional Momos and Thukpa are delicious!"</p>
-                        <div class="testimonial-author">
-                            <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80" alt="Anirudh Roy">
-                            <h4>Anirudh Roy</h4>
-                            <span>Kolkata</span>
-                        </div>
-                    </div>
-                </div>
+            <div class="testimonial-showcase-wrapper">
+                <button type="button" class="testimonial-nav-btn prev" id="btn-testimonial-prev" aria-label="Previous reviews">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
                 
-                <div class="slider-dots">
-                    <!-- JS populated dots -->
+                <div class="testimonial-viewport" id="testimonial-viewport">
+                    <div class="testimonial-cards-track" id="testimonial-slider">
+                        <!-- Card 1 -->
+                        <div class="testimonial-card">
+                            <div class="testimonial-card-top">
+                                <img class="testimonial-card-avatar" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80" alt="Rajesh Sharma" loading="lazy">
+                                <h3 class="testimonial-card-author">Rajesh Sharma</h3>
+                                <p class="testimonial-card-role">New Delhi</p>
+                                <div class="testimonial-card-stars" aria-label="5 out of 5 stars">★★★★★</div>
+                            </div>
+                            <div class="testimonial-card-body">
+                                <p class="testimonial-card-text">"Absolutely breathtaking! Waking up to Kanchenjunga directly from our Premium Balcony Suite was an experience of a lifetime. The staff was incredibly warm and served authentic Sikkimese tea upon arrival. Highly recommended!"</p>
+                                <div class="testimonial-card-video-wrap">
+                                    <button type="button" class="btn-card-video-review" onclick="event.stopPropagation(); openGuestVideoModal('https%3A%2F%2Fcommondatastorage.googleapis.com%2Fgtv-videos-bucket%2Fsample%2FForBiggerBlazes.mp4', 'Rajesh%20Sharma', 'New%20Delhi')">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                                        Watch Video Review
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 2 -->
+                        <div class="testimonial-card">
+                            <div class="testimonial-card-top">
+                                <img class="testimonial-card-avatar" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80" alt="Sarah Jenkins" loading="lazy">
+                                <h3 class="testimonial-card-author">Sarah Jenkins</h3>
+                                <p class="testimonial-card-role">United Kingdom</p>
+                                <div class="testimonial-card-stars" aria-label="5 out of 5 stars">★★★★★</div>
+                            </div>
+                            <div class="testimonial-card-body">
+                                <p class="testimonial-card-text">"The Tibet Wellness Spa here is pure bliss. We visited Sikkim for an anniversary trek, and ending our trip at the resort was the best decision. The wood fire lounge and dynamic dining were first-class."</p>
+                            </div>
+                        </div>
+
+                        <!-- Card 3 -->
+                        <div class="testimonial-card">
+                            <div class="testimonial-card-top">
+                                <img class="testimonial-card-avatar" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80" alt="Anirudh Roy" loading="lazy">
+                                <h3 class="testimonial-card-author">Anirudh Roy</h3>
+                                <p class="testimonial-card-role">Kolkata</p>
+                                <div class="testimonial-card-stars" aria-label="5 out of 5 stars">★★★★★</div>
+                            </div>
+                            <div class="testimonial-card-body">
+                                <p class="testimonial-card-text">"Superb hospitality and attention to detail. Fast Wi-Fi was useful for checking on work, and the parking arrangements were secure. The restaurant's traditional Momos and Thukpa are delicious!"</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Customer Review Trigger Button -->
+                <button type="button" class="testimonial-nav-btn next" id="btn-testimonial-next" aria-label="Next reviews">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+            </div>
+            
+            <div class="slider-dots" id="testimonial-dots">
+                <!-- JS populated dots -->
+            </div>
+
+            <!-- Customer Review Trigger Button -->
                 <div class="testimonial-actions" style="text-align: center; margin-top: 36px;">
                     <button type="button" class="btn btn-outline" id="btn-open-review-modal" style="display: inline-flex; align-items: center; gap: 10px; padding: 12px 28px; font-weight: 500; cursor: pointer;">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                         Share Your Experience
                     </button>
                 </div>
-            </div>
         </div>
     </section>
 
@@ -452,7 +638,25 @@
         </div>
     </div>
 
+    
+    <!-- ==========================================
+         GUEST VIDEO REVIEW PLAYER MODAL
+         ========================================== -->
+    <div class="review-modal-backdrop" id="modal-guest-video-player" style="display: none;">
+        <div class="review-modal-card" style="max-width: 780px; padding: 24px; background: #0c120e; color: #fff; border: 1px solid rgba(197, 168, 128, 0.4); box-shadow: 0 30px 80px rgba(0,0,0,0.85);">
+            <button type="button" class="review-modal-close" id="btn-close-guest-video" aria-label="Close modal" style="color: #c5a880;">&times;</button>
+            <div style="margin-bottom: 16px; padding-right: 36px;">
+                <span class="review-modal-badge" style="background: rgba(197, 168, 128, 0.15); color: #c5a880; border: 1px solid rgba(197, 168, 128, 0.3); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 10px; border-radius: 20px; display: inline-block;">🎬 Authentic Guest Story</span>
+                <h3 id="guest-video-author" style="margin: 8px 0 3px; font-size: 1.35rem; color: #faf9f6; font-family: var(--font-heading);"></h3>
+                <p id="guest-video-location" style="margin: 0; font-size: 0.85rem; color: #a3b0a7;"></p>
+            </div>
+            <div id="guest-video-media-container" style="position: relative; width: 100%; border-radius: 8px; overflow: hidden; background: #000; min-height: 280px; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(0,0,0,0.6);">
+                <!-- Dynamic video or iframe -->
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
-    <script src="js/main.js?v=5"></script>
+    <script src="js/main.js?v=20261006_3"></script>
 </body>
 </html>
