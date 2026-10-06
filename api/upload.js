@@ -2,8 +2,21 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
-import ffmpegPath from 'ffmpeg-static';
 import { verifyAdmin } from './_db.js';
+
+let ffmpegPath = null;
+try {
+  const mod = await import('ffmpeg-static');
+  ffmpegPath = mod.default || mod;
+} catch (e) {
+  if (fs.existsSync('/usr/bin/ffmpeg')) {
+    ffmpegPath = '/usr/bin/ffmpeg';
+  } else if (fs.existsSync('/usr/local/bin/ffmpeg')) {
+    ffmpegPath = '/usr/local/bin/ffmpeg';
+  } else {
+    ffmpegPath = 'ffmpeg';
+  }
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
