@@ -8,6 +8,10 @@
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://theparasolinn.com/">
 
+    <!-- Google Search Console Verification: Replace with your code from Google Search Console -->
+    <!-- e.g. <meta name="google-site-verification" content="YOUR_VERIFICATION_CODE_HERE"> -->
+    <meta name="google-site-verification" content="GOOGLE_SEARCH_CONSOLE_VERIFICATION_CODE">
+
     <!-- Open Graph / Social Media -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://theparasolinn.com/">
@@ -27,10 +31,21 @@
       "@context": "https://schema.org",
       "@type": "Hotel",
       "name": "The Parasol Inn",
-      "image": "https://theparasolinn.com/images/logo.png",
+      "alternateName": "The Parasol Inn Gangtok",
+      "image": [
+        "https://theparasolinn.com/images/logo.png",
+        "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=1200&q=80"
+      ],
+      "logo": "https://theparasolinn.com/images/logo.png",
       "url": "https://theparasolinn.com",
       "telephone": ["+919246244599", "+918348554599"],
       "email": "Passangbhutia298@gmail.com",
+      "priceRange": "₹₹",
+      "currenciesAccepted": "INR",
+      "paymentAccepted": "Cash, Credit Card, Debit Card, UPI",
+      "checkinTime": "12:00",
+      "checkoutTime": "11:00",
+      "numberOfRooms": 9,
       "address": {
         "@type": "PostalAddress",
         "streetAddress": "Swastik Gate, Upper Burtuk",
@@ -44,20 +59,44 @@
         "latitude": 27.3503,
         "longitude": 88.6186
       },
-      "checkinTime": "12:00",
-      "checkoutTime": "11:00",
-      "priceRange": "₹₹",
+      "hasMap": "https://maps.google.com/maps?q=Swastik+Gate,+Upper+Burtuk,+Gangtok,+Sikkim",
       "starRating": {
         "@type": "Rating",
-        "ratingValue": "4.5"
+        "ratingValue": "4.5",
+        "bestRating": "5"
       },
+      "openingHoursSpecification": [
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+          "opens": "00:00",
+          "closes": "23:59"
+        }
+      ],
+      "contactPoint": [
+        {
+          "@type": "ContactPoint",
+          "telephone": "+919246244599",
+          "contactType": "reservations",
+          "areaServed": "IN",
+          "availableLanguage": ["English", "Hindi", "Nepali"]
+        },
+        {
+          "@type": "ContactPoint",
+          "telephone": "+918348554599",
+          "contactType": "customer service",
+          "areaServed": "IN",
+          "availableLanguage": ["English", "Hindi", "Nepali"]
+        }
+      ],
       "amenityFeature": [
         { "@type": "LocationFeatureSpecification", "name": "Free High-Speed Wi-Fi", "value": true },
         { "@type": "LocationFeatureSpecification", "name": "Mountain View Balcony", "value": true },
-        { "@type": "LocationFeatureSpecification", "name": "Restaurant & Dining", "value": true },
-        { "@type": "LocationFeatureSpecification", "name": "24/7 Room Service", "value": true },
+        { "@type": "LocationFeatureSpecification", "name": "Multi-Cuisine Restaurant & Dining", "value": true },
+        { "@type": "LocationFeatureSpecification", "name": "24/7 Front Desk & Room Service", "value": true },
         { "@type": "LocationFeatureSpecification", "name": "Travel Assistance & Sightseeing", "value": true },
-        { "@type": "LocationFeatureSpecification", "name": "Complimentary Parking", "value": true }
+        { "@type": "LocationFeatureSpecification", "name": "Complimentary Secure Parking", "value": true },
+        { "@type": "LocationFeatureSpecification", "name": "Underbed Heating", "value": true }
       ]
     }
     </script>
